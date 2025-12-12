@@ -1,0 +1,28 @@
+light_guide:
+  # options (string): rectangular, polygonal
+  geometry: rectangular 
+  # only for option "polygonal"
+  n_sides: 4
+  # x,y,z
+  dimensions_in_mm: [950.0, 10.0, 100.0] 
+  # options (string): False or TPB, PEN, pTP, ??
+  wls: False
+
+
+external_wls:
+  # options (string): False or TPB, PEN, pTP, EJ280, ??
+  material: False
+  thickness_in_mm: 5  
+  gap_in_mm: 20  
+  substrate: pmma
+
+
+sipm:
+  # options (string): left_right, top_bottom, all
+  placement: all
+  number: 12
+  gap_in_mm: 50
+
+reflector: 
+  placement: False
+  gap_in_mm: 0
