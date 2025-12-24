@@ -30,7 +30,7 @@ class LightGuide:
 
         self.reflector_cfg = self.config["reflector"]
         self.reflector     = self.reflector_cfg["placement"]
-        self.reflector_gap = self.reflector_cfg.get("gap_in_mm", 0.)
+        self.reflector_gap = self.reflector_cfg.get("gap_in_mm", self.sipm_gap)
 
         self.gap_from_panel = 50 # mm
         self.reflector_thickness = .150 # in mm
@@ -115,7 +115,7 @@ class LightGuide:
             self.reflector_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1) # light grey
         elif self.geometry == "rectangle":
             # Short side reflector
-            self.reflector_short_s = pg4.geant4.solid.Box("reflector_short_s", self.reflector_thickness, self.lg_y, self.lg_z, lunit="mm", registry=self.reg)
+            self.reflector_short_s = pg4.geant4.solid.Box("reflector_short_s", self.lg_z, self.lg_y, self.reflector_thickness, lunit="mm", registry=self.reg)
             self.reflector_short_l = pg4.geant4.LogicalVolume(self.reflector_short_s, self.reg.materialDict["pmma"], "reflector_short_l", registry=self.reg)
             self.reflector_short_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1) # light grey
             # Long side reflector
@@ -256,7 +256,6 @@ class LightGuide:
         self.place_detectors()
 
         if self.reflector:
-            self.construct_reflector()
             self.place_reflector()
 
         if self.wls_ext_cfg["material"]:
@@ -279,6 +278,8 @@ class LightGuide:
                     
     def place_reflector(self):
         """Chooses and places SiPMs and Reflectors based on configuration."""
+
+        self.construct_reflector()
 
         lightguide_container_l = self.container_l
 
@@ -330,79 +331,58 @@ class LightGuide:
                         sipm_index += 1
             
             # Reflector placement after all SiPMs on the side
-            pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, reflector_side_cy, 0], current_reflector_l, f"subtr_reflector_{side}", lightguide_container_l, registry=self.reg)
-        
+            pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, reflector_side_cy, 0], current_reflector_l, f"subtr_reflector_{side}", lightguide_container_l, registry=self.reg)        
+
         elif self.geometry == "rectangle":
+
+            if self.n_sides != 4:
+                raise ValueError("Placement for rectangular geometry requires n_sides = 4.")
 
             for side in range(self.n_sides):
 
-                side_name = ""
+                # Decide orientation
+                is_vertical = side % 2 == 0
+                place_sipm_on_reflector_side = False
 
-                # Skip sides based on SiPM placement configuration
-                place_sipm_on_side = True
-                if self.sipm_placement == "left_right" and side % 2 != 0:
-                    place_sipm_on_side = False
-                    side_name = "vertical"
-                elif self.sipm_placement == "top_bottom" and side % 2 == 0:
-                    side_name = "horizontal"
-                    place_sipm_on_side = False 
-                    
-                if self.n_sides != 4:
-                    raise ValueError("Placemenr for rectangular geometry requires n_sides = 4.")
-                    
-                # Angle corresponding to the center of each side of the polygon
-                side_angle = 2 * pi * side / self.n_sides 
+                if self.sipm_placement == "left_right" and is_vertical:
+                    place_sipm_on_reflector_side = True
+                elif self.sipm_placement == "top_bottom" and not is_vertical:
+                    place_sipm_on_reflector_side = True
+                elif self.sipm_placement == "all":
+                    place_sipm_on_reflector_side = True
 
-                # Other variables for correct reflector position
-                r = self.lg_x * sin(side_angle) + self.lg_z * cos(side_angle)
-                distance_per_sipm = (abs(r) / sipm_per_side)
-                center_index_offset = (sipm_per_side - 1) / 2   
-                
-                # Rotation
-                rot_angle = side_angle + pi/2
-                rotation = [0, rot_angle, 0]
+                side_angle = 2 * pi * side / self.n_sides
+                rotation = [0, side_angle + pi/2, 0]
 
-                if self.reflector:
-                    # reflector definition in the rectangular case
-                    current_reflector_short_s = self.reflector_short_s
-                    current_reflector_short_l = self.reflector_short_l
-                    current_reflector_long_s = self.reflector_long_s
-                    current_reflector_long_l = self.reflector_long_l
+                reflector_side_cx = (self.lg_x / 2 + self.reflector_thickness / 2 + self.reflector_gap) * cos(side_angle)
+                reflector_side_cz = (self.lg_z / 2 + self.reflector_thickness / 2 + self.reflector_gap) * sin(side_angle)
 
-                    reflector_side_cx = (self.lg_x / 2 + self.reflector_thickness / 2 + self.reflector_gap) * cos(side_angle)
-                    reflector_side_cz = (self.lg_z / 2 + self.reflector_thickness / 2 + self.reflector_gap) * sin(side_angle)
+                # Select correct reflector solid
+                current_reflector_s = self.reflector_short_s if is_vertical else self.reflector_long_s
 
-                    if not place_sipm_on_side:
-                        if side_name == "vertical":
-                            pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, 0, reflector_side_cz], self.reflector_long_l, f"reflector_{side}", lightguide_container_l, registry=self.reg)
-                        elif side_name == "horizontal":
-                            pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, 0, reflector_side_cz], self.reflector_short_l, f"reflector_{side}", lightguide_container_l, registry=self.reg)
-                        continue
-                
-                # SiPM Placement Loop
-                if place_sipm_on_side:
-                    for j in range(sipm_per_side): 
-                        if sipm_per_side > 1:
-                            current_offset = (j - center_index_offset) * distance_per_sipm
-                        else:
-                            current_offset = 0
+                # No SiPMs → simple placement
+                if not place_sipm_on_reflector_side:
+                    current_reflector_l = self.reflector_short_l  if is_vertical else self.reflector_long_l
+                    pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, 0, reflector_side_cz], current_reflector_l, f"reflector_{side}", lightguide_container_l, registry=self.reg)
+                    continue
 
-                        if side_name == "vertical":
-                            # Subtraction volume: reflector - detector
-                            current_reflector_s = pg4.geant4.solid.Subtraction(f"reflector_s_{side}_{j}", current_reflector_long_s, det_s, [[0, 0, 0], [current_offset, 0, 0]], registry=self.reg)                
-                            current_reflector_long_l = pg4.geant4.LogicalVolume(current_reflector_s, self.reg.materialDict["pmma"], f"subtr_reflector_long_{side}_{j}", registry=self.reg)
-                            current_reflector_long_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1)
-                        elif side_name == "horizontal":
-                            # Subtraction volume: reflector - detector
-                            current_reflector_s = pg4.geant4.solid.Subtraction(f"reflector_s_{side}_{j}", current_reflector_short_s, det_s, [[0, 0, 0], [current_offset, 0, 0]], registry=self.reg)                
-                            current_reflector_short_l = pg4.geant4.LogicalVolume(current_reflector_s, self.reg.materialDict["pmma"], f"subtr_reflector_short_{side}_{j}", registry=self.reg)
-                            current_reflector_short_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1)
+                # Geometry for offsets
+                length = self.lg_z if is_vertical else self.lg_x
+                distance_per_sipm = length / sipm_per_side
+                center_index_offset = (sipm_per_side - 1) / 2
 
-                        sipm_index += 1
-                
-                # Reflector placement after all SiPMs on the side
-                if self.reflector:
-                    if side_name == "vertical":
-                        pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, 0, reflector_side_cz], current_reflector_long_l, f"subtr_reflector_long_{side}", lightguide_container_l, registry=self.reg)
-                    elif side_name == "horizontal":
-                        pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, 0, reflector_side_cz], current_reflector_short_l, f"subtr_reflector_short_{side}", lightguide_container_l, registry=self.reg)
+                # Subtractions
+                for j in range(sipm_per_side):
+
+                    offset = (j - center_index_offset) * distance_per_sipm
+                    subtraction_offset = [offset, 0, 0]
+
+                    current_reflector_s = pg4.geant4.solid.Subtraction(f"reflector_s_{side}_{j}", current_reflector_s, det_s, [[0, 0, 0], subtraction_offset], registry=self.reg)
+
+                    sipm_index += 1
+
+                # Final logical + placement
+                current_reflector_l = pg4.geant4.LogicalVolume(current_reflector_s, self.reg.materialDict["pmma"], f"subtr_reflector_{side}", registry=self.reg)
+                current_reflector_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1)
+
+                pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, 0, reflector_side_cz], current_reflector_l, f"subtr_reflector_{side}", lightguide_container_l, registry=self.reg) 
