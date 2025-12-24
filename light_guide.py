@@ -322,7 +322,6 @@ class LightGuide:
                             offset = (j - (sipm_per_side - 1)/2) * (self.side_length / sipm_per_side)
                         else:
                             offset = 0
-
                         # Subtraction volume: reflector - detector
                         current_reflector_s = pg4.geant4.solid.Subtraction(f"reflector_s_{side}_{j}", current_reflector_s, det_s, [[0, 0, 0], [offset, 0, 0]], registry=self.reg)                
                         current_reflector_l = pg4.geant4.LogicalVolume(current_reflector_s, self.reg.materialDict["pmma"], f"subtr_reflector_l_{side}_{j}", registry=self.reg)
@@ -330,8 +329,8 @@ class LightGuide:
 
                         sipm_index += 1
             
-            # Reflector placement after all SiPMs on the side
-            pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, reflector_side_cy, 0], current_reflector_l, f"subtr_reflector_{side}", lightguide_container_l, registry=self.reg)        
+                # Reflector placement after all SiPMs on the side
+                pg4.geant4.PhysicalVolume(rotation, [reflector_side_cx, reflector_side_cy, 0], current_reflector_l, f"subtr_reflector_{side}", lightguide_container_l, registry=self.reg)        
 
         elif self.geometry == "rectangle":
 
