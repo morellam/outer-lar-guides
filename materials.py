@@ -1,6 +1,11 @@
 import pyg4ometry as pg4
 import numpy as np
 
+def photon_energy_from_nm(wavelength_nm):
+    h_eVs = 4.1357e-15        # eV*s
+    c_ms  = 2.99792458e8     # m/s
+    return (h_eVs * c_ms * 1e9) / wavelength_nm  # eV
+
 def define_materials(reg: pg4.geant4.Registry):
     """Define materials used in the simulation and add them to the registry."""
 
@@ -97,5 +102,25 @@ def define_materials(reg: pg4.geant4.Registry):
                                         0.156, 0.149, 0.132, 0.117, 0.097, 0.064, 0.043, 0.041, 0.030, 0.019,
                                         0.014, 0.008, 0.004, 0.001, 0.001, 0.001, 0.000])
     
+
+    pTP_energy = []
+    pTP_RI = []
+    pTP_abs_length = []
+    pTP_kill_after = []
+
+    for i in range(487, 335, -1):
+        pTP_energy.append(photon_energy_from_nm(i))
+        pTP_RI.append(1.65)
+        pTP_abs_length.append(1e3)     # m   (WLSABSLENGTH)
+        pTP_kill_after.append(1e-3)    # m   (ABSLENGTH)
+    for i in range(335, 109, -1):
+        pTP_energy.append(photon_energy_from_nm(i))
+        pTP_RI.append(1.65)
+        pTP_abs_length.append(1e-7)    # m   (WLSABSLENGTH)
+        pTP_kill_after.append(1e-3)    # m   (ABSLENGTH)
+
+    pTP.addVecProperty("RINDEX", pTP_energy, pTP_RI)
+    pTP.addVecProperty("ABSLENGTH", pTP_energy, pTP_kill_after)
+    pTP.addVecProperty("WLSABSLENGTH", pTP_energy, pTP_abs_length)
     pTP.addVecProperty("WLSCOMPONENT", pTP_spectrum_energy, pTP_scint_spectrum_cryo)
     pTP.addConstProperty("WLSTIMECONSTANT", 0.5, "ns")  # in ns
