@@ -50,7 +50,7 @@ class LightGuide:
         z_ext = self.lg_z / 2 if not self.wls_ext_cfg["material"] else + self.lg_z / 2 + wls_ext_thick * 2 + wls_ext_gap
         # if there is also the reflector, just add its thickness and gap for a more conservative container
         d = sipm_z * 2 + sipm_gap if not self.reflector else sipm_z * 2 + sipm_gap + self.reflector_thickness * 2 + self.reflector_gap
-        d = d + wls_ext_thick * 2 + wls_ext_gap if self.wls_ext_cfg["material"] else d
+        d = d + (wls_ext_thick + wls_ext_gap)* 2  if self.wls_ext_cfg["material"] else d
 
         if self.geometry == "polygon":
             r_ext = self.apothem + d
@@ -85,7 +85,8 @@ class LightGuide:
 
     def construct_external_wls(self): 
         """Construct external WLS, if any."""
-        if not self.wls_ext_cfg["material"]:
+        wls_material = self.wls_ext_cfg["material"]
+        if not wls_material:
             return None
         
         wls_thickness = self.wls_ext_cfg["thickness_in_mm"]
@@ -105,7 +106,7 @@ class LightGuide:
         else:
             return None
         
-        wls_external_l = pg4.geant4.LogicalVolume(wls_external_s, self.reg.materialDict["pmma"], "wls_external_l", registry=self.reg)
+        wls_external_l = pg4.geant4.LogicalVolume(wls_external_s, self.reg.materialDict[wls_material], "wls_external_l", registry=self.reg)
         wls_external_l.pygeom_color_rgba = (0.180, 0.600, 0.369, 1.0)
         
         pg4.geant4.PhysicalVolume([0, 0, 0], translation, wls_external_l, "wls_external_top", self.container_l, registry=self.reg)
