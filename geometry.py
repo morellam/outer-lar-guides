@@ -17,7 +17,7 @@ def main():
     reg.setWorld(world_l)
 
     container_s = pg4.geant4.solid.Box("container_s", 5000, 5000, 5000, registry=reg, lunit="mm")
-    container_l = pg4.geant4.LogicalVolume(container_s, "G4_lAr", "container_l", registry=reg)
+    container_l = pg4.geant4.LogicalVolume(container_s, reg.materialDict["lAr"], "container_l", registry=reg)
     container_l.pygeom_color_rgba = False
     pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, 0], container_l, "container", world_l, registry=reg)
     

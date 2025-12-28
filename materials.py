@@ -6,15 +6,16 @@ def photon_energy_from_nm(wavelength_nm):
     c_ms  = 2.99792458e8     # m/s
     return (h_eVs * c_ms * 1e9) / wavelength_nm  # eV
 
-def define_materials(reg: pg4.geant4.Registry):
-    """Define materials used in the simulation and add them to the registry."""
 
-    H = pg4.geant4.ElementSimple("hydrogen","H",1,1.008, reg)
-    C = pg4.geant4.ElementSimple("carbon","C",6,12.0096, reg)
-    O = pg4.geant4.ElementSimple("oxygen","O",8,16.0, reg)
+def define_PMMA(reg: pg4.geant4.Registry):
+    """Define PMMA material and its optical properties."""
+
+    H = reg.materialDict["hydrogen"]
+    C = reg.materialDict["carbon"]
+    O = reg.materialDict["oxygen"]
 
     # PMMA (Polymethyl methacrylate) C_5 H_8 O_2
-    pmma = pg4.geant4.MaterialCompound("pmma",1.19,3,reg)   
+    pmma = pg4.geant4.MaterialCompound("pmma", 1.19, 3, reg)   
     pmma.add_element_natoms(H,8)
     pmma.add_element_natoms(C,5)
     pmma.add_element_natoms(O,2)
@@ -45,8 +46,13 @@ def define_materials(reg: pg4.geant4.Registry):
     4.3216,4.3123,4.3037,4.2959,4.2888,4.2825,4.2769,4.2720,4.2678,4.2644
     ]
 
-    pmma.addVecProperty("ABSLENGTH", photon_energy, abs_length)
+    pmma.addVecProperty("ABSLENGTH", photon_energy, abs_length, vunit="m")
 
+def define_pTP(reg: pg4.geant4.Registry):
+    """Define p-Terphenyl (pTP) material and its optical properties."""
+
+    H = reg.materialDict["hydrogen"]
+    C = reg.materialDict["carbon"]
 
     # pTP (p-Terphenyl) C_18 H_14 ??
     pTP = pg4.geant4.MaterialCompound("pTP", 1.23, 2, reg)   
@@ -120,7 +126,35 @@ def define_materials(reg: pg4.geant4.Registry):
         pTP_kill_after.append(1e-3)    # m   (ABSLENGTH)
 
     pTP.addVecProperty("RINDEX", pTP_energy, pTP_RI)
-    pTP.addVecProperty("ABSLENGTH", pTP_energy, pTP_kill_after)
-    pTP.addVecProperty("WLSABSLENGTH", pTP_energy, pTP_abs_length)
+    pTP.addVecProperty("ABSLENGTH", pTP_energy, pTP_kill_after, vunit="m")
+    pTP.addVecProperty("WLSABSLENGTH", pTP_energy, pTP_abs_length, vunit="m")
     pTP.addVecProperty("WLSCOMPONENT", pTP_spectrum_energy, pTP_scint_spectrum_cryo)
     pTP.addConstProperty("WLSTIMECONSTANT", 0.5, "ns")  # in ns
+
+def define_lar(reg: pg4.geant4.Registry):
+    """Define Liquid Argon (LAr) material and its optical properties."""
+
+    lar = pg4.geant4.MaterialSingleElement("lAr", 18, 39.948, 1.396, reg) 
+
+    photon_energy = [
+    3.100,3.125,3.150,3.175,3.200,3.225,3.250,3.275,3.300,3.325,
+    3.350,3.375,3.400,3.425,3.450,3.475,3.500,3.525,3.550,3.575,
+    3.600,3.625,3.650,3.675,3.700,3.725,3.750,3.775,3.800,3.825,
+    3.850,3.875,3.900,3.925,3.950,3.975,4.000
+    ]
+
+    abs_length = np.full(len(photon_energy), 1.0)  # in meters
+    lar.addVecProperty("ABSLENGTH", photon_energy, abs_length, vunit = "m")
+
+def define_materials(reg: pg4.geant4.Registry):
+    """Define materials used in the simulation and add them to the registry."""
+
+    pg4.geant4.ElementSimple("hydrogen", "H",   1, 1.008,   reg)
+    pg4.geant4.ElementSimple("carbon",   "C",   6, 12.0096, reg)
+    pg4.geant4.ElementSimple("oxygen",   "O",   8, 16.0,    reg)
+
+
+    define_lar(reg)
+    define_PMMA(reg)
+    define_pTP(reg)
+    
