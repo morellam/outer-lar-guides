@@ -43,12 +43,14 @@ class LightGuide:
 
     def construct_light_guide_container(self): 
         """Constructs the container solid for the Light Guide."""
-
         sipm_z, sipm_gap = self.sipm_z, self.sipm_gap
         wls_ext_thick = self.wls_ext_cfg.get("thickness_in_mm", 0)
         wls_ext_gap = self.wls_ext_cfg.get("gap_in_mm", 0)
-        z_ext = self.lg_z / 2 + wls_ext_thick * 2 + wls_ext_gap
-        d = max(sipm_z * 2 + sipm_gap, self.reflector_thickness * 2 + self.reflector_gap)
+        # check if there is external WLS to add its thickness and gap
+        z_ext = self.lg_z / 2 if not self.wls_ext_cfg["material"] else + self.lg_z / 2 + wls_ext_thick * 2 + wls_ext_gap
+        # if there is also the reflector, just add its thickness and gap for a more conservative container
+        d = sipm_z * 2 + sipm_gap if not self.reflector else sipm_z * 2 + sipm_gap + self.reflector_thickness * 2 + self.reflector_gap
+        d = d + wls_ext_thick * 2 + wls_ext_gap if self.wls_ext_cfg["material"] else d
 
         if self.geometry == "polygon":
             r_ext = self.apothem + d
@@ -86,24 +88,27 @@ class LightGuide:
         if not self.wls_ext_cfg["material"]:
             return None
         
-        thickness = self.wls_ext_cfg["thickness_in_mm"]
+        wls_thickness = self.wls_ext_cfg["thickness_in_mm"]
+        wls_gap = self.wls_ext_cfg["gap_in_mm"]
         
         if self.geometry == "polygon":
-            zPlanes = [-thickness / 2, thickness / 2]
+            zPlanes = [-wls_thickness / 2, wls_thickness / 2]
             rInner = [0.0, 0.0]
             rOuter = [self.apothem, self.apothem]
             wls_external_s = pg4.geant4.solid.Polyhedra("wls_external_s", 0, 2 * pi, self.n_sides, len(zPlanes), zPlanes, rInner, rOuter, registry=self.reg, lunit="mm")
+            z = wls_gap + wls_thickness / 2 + self.lg_z / 2
+            translation = [0, 0, z]
         elif self.geometry == "rectangle":
-             wls_external_s = pg4.geant4.solid.Box("wls_external_s", self.lg_x, self.lg_y, thickness, registry=self.reg, lunit="mm")
+            wls_external_s = pg4.geant4.solid.Box("wls_external_s", self.lg_x, wls_thickness, self.lg_z, registry=self.reg, lunit="mm")
+            y = wls_gap + wls_thickness / 2 + self.lg_y / 2
+            translation = [0, y, 0]
         else:
             return None
         
         wls_external_l = pg4.geant4.LogicalVolume(wls_external_s, self.reg.materialDict["pmma"], "wls_external_l", registry=self.reg)
         wls_external_l.pygeom_color_rgba = (0.180, 0.600, 0.369, 1.0)
-        wls_thickness = self.wls_ext_cfg["thickness_in_mm"]
-        wls_gap = self.wls_ext_cfg["gap_in_mm"]
-        z = wls_gap + wls_thickness / 2 + self.lg_z / 2
-        pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, z], wls_external_l, "wls_external_top", self.container_l, registry=self.reg)
+        
+        pg4.geant4.PhysicalVolume([0, 0, 0], translation, wls_external_l, "wls_external_top", self.container_l, registry=self.reg)
 
         # return wls_external_s
 
