@@ -94,6 +94,19 @@ def define_PEN(reg: pg4.geant4.Registry):
     pygeomoptics.pen.pyg4_pen_attach_scintillation(pen, reg)
     pygeomoptics.pen.pyg4_pen_attach_wls(pen, reg, quantum_efficiency = True)
 
+def define_TPB(reg: pg4.geant4.Registry):
+    """Define Tetraphenyl butadiene (TPB) material and its optical properties."""
+
+    H = reg.materialDict["hydrogen"]
+    C = reg.materialDict["carbon"]
+
+    # TPB (Tetraphenyl butadiene) C_28 H_22
+    tpb = pg4.geant4.MaterialCompound("TPB", 1.079, 2, reg)   
+    tpb.add_element_natoms(H,22)
+    tpb.add_element_natoms(C,28)
+
+    pygeomoptics.tpb.pyg4_tpb_attach_rindex(tpb, reg)
+    pygeomoptics.tpb.pyg4_tpb_attach_wls(tpb, reg, quantum_efficiency = True, emission_spectrum = "default")
 
 def define_materials(reg: pg4.geant4.Registry):
     """Define materials used in the simulation and add them to the registry."""
@@ -106,4 +119,5 @@ def define_materials(reg: pg4.geant4.Registry):
     define_PMMA(reg)
     define_pTP(reg)
     define_PEN(reg)
+    define_TPB(reg)
     

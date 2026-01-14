@@ -21,7 +21,7 @@ class LightGuide:
         self.lg_cfg      = self.config["light_guide"]
         self.lg_geometry = self.lg_cfg.get("geometry", "rectangle")
         self.lg_nsides   = self.lg_cfg.get("n_sides", 4)
-        self.lg_material = self.lg_cfg.get("wls", False)
+        self.lg_material = self.lg_cfg.get("wls", "PMMA")
         self.lg_x, self.lg_y, self.lg_z = self.lg_cfg["dimensions_in_mm"]
 
         self.wls_config          = self.config["external_wls"]
@@ -74,7 +74,7 @@ class LightGuide:
             x = lg_x + sipm_gap + sipm_z * 2
             x = x + self.reflector_thickness + reflector_gap if self.reflector else x
 
-            y = lg_y + wls_ext_thick + wls_ext_gap if wls_material else lg_y
+            y = lg_y + wls_ext_thick * 2 + wls_ext_gap * 2 if wls_material else lg_y
             
             z = lg_z + sipm_gap + sipm_z * 2
             z = z + wls_ext_thick + wls_ext_gap if wls_material else z
@@ -104,21 +104,21 @@ class LightGuide:
 
     def construct_external_wls(self): 
         """Construct external WLS, if any."""
-        wls_material = self.wls_ext_cfg["material"]
+        wls_material = self.wls_material
         if not wls_material:
             return None
         
-        wls_thickness = self.wls_ext_cfg["thickness_in_mm"]
-        wls_gap = self.wls_ext_cfg["gap_in_mm"]
+        wls_thickness = self.wls_thickness_in_mm
+        wls_gap = self.wls_ext_gap
         
-        if self.geometry == "polygon":
+        if self.lg_geometry == "polygon":
             zPlanes = [-wls_thickness / 2, wls_thickness / 2]
             rInner = [0.0, 0.0]
             rOuter = [self.apothem, self.apothem]
             wls_external_s = pg4.geant4.solid.Polyhedra("wls_external_s", 0, 2 * pi, self.n_sides, len(zPlanes), zPlanes, rInner, rOuter, registry=self.reg, lunit="mm")
             z = wls_gap + wls_thickness / 2 + self.lg_z / 2
             translation = [0, 0, z]
-        elif self.geometry == "rectangle":
+        elif self.lg_geometry == "rectangle":
             wls_external_s = pg4.geant4.solid.Box("wls_external_s", self.lg_x, wls_thickness, self.lg_z, registry=self.reg, lunit="mm")
             y = wls_gap + wls_thickness / 2 + self.lg_y / 2
             translation = [0, y, 0]
@@ -289,8 +289,7 @@ class LightGuide:
 
         # Light Guide
         lightguide_s = self.construct_light_guide_solid()
-        # lightguide_l = pg4.geant4.LogicalVolume(lightguide_s, self.reg.materialDict["pmma"], "lightguide_l", registry=self.reg)
-        lightguide_l = pg4.geant4.LogicalVolume(lightguide_s, self.reg.materialDict["pTP"], "lightguide_l", registry=self.reg)
+        lightguide_l = pg4.geant4.LogicalVolume(lightguide_s, self.lg_material, "lightguide_l", registry=self.reg)
         lightguide_l.pygeom_color_rgba = (0.0, 0.0, 1.0, 0.5) # blu
         pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, 0], lightguide_l, "lightguide", self.container_l, registry=self.reg)
 
