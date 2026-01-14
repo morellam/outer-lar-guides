@@ -24,7 +24,7 @@ def main():
     # PMMA Panel for Light Guide Placement
     panel_y = 100 
     panel_s = pg4.geant4.solid.Box("panel_s", 1000, panel_y, 3000, registry=reg, lunit="mm")
-    panel_l = pg4.geant4.LogicalVolume(panel_s, reg.materialDict["pmma"], "panel_l", registry=reg)
+    panel_l = pg4.geant4.LogicalVolume(panel_s, reg.materialDict["PMMA"], "panel_l", registry=reg)
     panel_l.pygeom_color_rgba = False
     pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, 0], panel_l, "panel", container_l, registry=reg)
 
