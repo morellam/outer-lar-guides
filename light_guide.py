@@ -18,10 +18,10 @@ class LightGuide:
         with open(config_path, "r") as f:
             self.config = yaml.safe_load(f)
 
-        self.lg_cfg       = self.config["light_guide"]
-        self.lg_geometry     = self.lg_cfg.get("geometry", "rectangle")
-        self.lg_nsides      = self.lg_cfg.get("n_sides", 4)
-        self.lg_material  = self.lg_cfg.get("wls", False)
+        self.lg_cfg      = self.config["light_guide"]
+        self.lg_geometry = self.lg_cfg.get("geometry", "rectangle")
+        self.lg_nsides   = self.lg_cfg.get("n_sides", 4)
+        self.lg_material = self.lg_cfg.get("wls", False)
         self.lg_x, self.lg_y, self.lg_z = self.lg_cfg["dimensions_in_mm"]
 
         self.wls_config          = self.config["external_wls"]
@@ -40,7 +40,7 @@ class LightGuide:
         self.reflector     = self.reflector_cfg.get("placement", False)
         self.reflector_gap = self.reflector_cfg.get("gap_in_mm", self.sipm_gap)
 
-        self.gap_from_panel = 50 # mm
+        self.gap_from_panel      = 50 # mm
         self.reflector_thickness = .150 # in mm
         
         # compute apothem and side length for polygonal geometry
@@ -52,29 +52,33 @@ class LightGuide:
     def construct_light_guide_container(self): 
         """Constructs the container solid for the Light Guide."""
         
+        lg_x, lg_y, lg_z = self.lg_x, self.lg_y, self.lg_z
         sipm_z, sipm_gap = self.sipm_z, self.sipm_gap
         wls_ext_thick = self.wls_thickness_in_mm
         wls_ext_gap   = self.wls_ext_gap
+        wls_material  = self.wls_material
+        reflector_gap = self.reflector_gap
         
-        # if there is also the reflector, just add its thickness and gap for a more conservative container
-        d = sipm_z * 2 + sipm_gap
-        d = d + self.reflector_thickness * 2 + self.reflector_gap if self.reflector else d
-        d = d + (wls_ext_thick + wls_ext_gap)* 2  if self.wls_material else d
 
         if self.lg_geometry == "polygon":
+            d = sipm_z * 2 + sipm_gap
+            d = d + self.reflector_thickness * 2 + reflector_gap if self.reflector else d
+            # d = d + (wls_ext_thick + wls_ext_gap)* 2  if wls_material else d
             r_ext = self.apothem + d
-            # check if there is external WLS to add its thickness and gap
-            z_ext = self.lg_z / 2 + wls_ext_thick * 2 + wls_ext_gap if self.wls_material else self.lg_z / 2
+            z_ext = lg_z / 2 + wls_ext_thick * 2 + wls_ext_gap if wls_material else lg_z / 2
             zPlanes = [-z_ext, z_ext]              
             rInner = [0.0, 0.0]
             rOuter = [r_ext, r_ext] 
             container_s = pg4.geant4.solid.Polyhedra("lightguide_container_s", 0, 2 * pi, self.lg_nsides, len(zPlanes), zPlanes, rInner, rOuter, registry=self.reg, lunit="mm")
         elif self.lg_geometry == "rectangle":
-            # simple case, with only light guide ans SiPM + SiPM gap
-            z = self.lg_z / 2 + self.sipm_gap + 2 * self.sipm_z
-            # check if there is external WLS to add its thickness and gap
-            z_ext = z + wls_ext_thick * 2 + wls_ext_gap if self.wls_material else self.lg_z / 2
-            container_s = pg4.geant4.solid.Box("lightguide_container_s", self.lg_x + d, self.lg_y + d, 2 * z_ext, registry=self.reg, lunit="mm")
+            x = lg_x + sipm_gap + sipm_z * 2
+            x = x + self.reflector_thickness + reflector_gap if self.reflector else x
+
+            y = lg_y + wls_ext_thick + wls_ext_gap if wls_material else lg_y
+            
+            z = lg_z + sipm_gap + sipm_z * 2
+            z = z + wls_ext_thick + wls_ext_gap if wls_material else z
+            container_s = pg4.geant4.solid.Box("lightguide_container_s", x, y, z, registry=self.reg, lunit="mm")
         else:
             raise ValueError(f"Unknown Light Guide geometry: {self.lg_geometry}")
         
