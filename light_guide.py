@@ -12,78 +12,88 @@ class LightGuide:
     """
 
     def __init__(self, config_path: str, registry: pg4.geant4.Registry):
+
         self.reg = registry
+
         with open(config_path, "r") as f:
             self.config = yaml.safe_load(f)
 
-        # Load configuration parameters
-        self.lg_cfg   = self.config["light_guide"]
-        self.geometry = self.lg_cfg["geometry"]
-        self.n_sides  = self.lg_cfg["n_sides"]
+        self.lg_cfg       = self.config["light_guide"]
+        self.lg_geometry     = self.lg_cfg.get("geometry", "rectangle")
+        self.lg_nsides      = self.lg_cfg.get("n_sides", 4)
+        self.lg_material  = self.lg_cfg.get("wls", False)
         self.lg_x, self.lg_y, self.lg_z = self.lg_cfg["dimensions_in_mm"]
-        
-        self.wls_material    = self.lg_cfg.get("wls", False)
-        self.thickness_in_mm = self.config["external_wls"].get("thickness_in_mm", 0)
-        self.wls_ext_gap     = self.config["external_wls"].get("gap_in_mm", 0)
-        
+
+        self.wls_config          = self.config["external_wls"]
+        self.wls_material        = self.wls_config.get("material", None)
+        self.wls_thickness_in_mm = self.wls_config.get("thickness_in_mm", 0)
+        self.wls_ext_gap         = self.wls_config.get("gap_in_mm", 0)
+        self.wls_substrate       = self.wls_config.get("substrate", False)
+
         self.sipm_cfg        = self.config["sipm"]
-        self.sipm_placement  = self.sipm_cfg["placement"]
-        self.sipm_number     = self.sipm_cfg["number"]
-        self.sipm_gap        = self.sipm_cfg["gap_in_mm"]
+        self.sipm_placement  = self.sipm_cfg.get("placement", "left_right")
+        self.sipm_number     = self.sipm_cfg.get("number", 12)
+        self.sipm_gap        = self.sipm_cfg.get("gap_in_mm", 0.1)
         self.sipm_x, self.sipm_y, self.sipm_z = self.sipm_cfg.get("dimensions_in_mm", [6.0, 6.0, 1.0])
 
         self.reflector_cfg = self.config["reflector"]
-        self.reflector     = self.reflector_cfg["placement"]
+        self.reflector     = self.reflector_cfg.get("placement", False)
         self.reflector_gap = self.reflector_cfg.get("gap_in_mm", self.sipm_gap)
 
         self.gap_from_panel = 50 # mm
         self.reflector_thickness = .150 # in mm
         
         # compute apothem and side length for polygonal geometry
-        if self.geometry == "polygon":
-            self.apothem = self.lg_x / 2 / tan(pi / self.n_sides)
+        if self.lg_geometry == "polygon":
+            self.apothem = self.lg_x / 2 / tan(pi / self.lg_nsides)
             self.side_length = self.lg_x
 
 
     def construct_light_guide_container(self): 
         """Constructs the container solid for the Light Guide."""
+        
         sipm_z, sipm_gap = self.sipm_z, self.sipm_gap
-        wls_ext_thick = self.thickness_in_mm
+        wls_ext_thick = self.wls_thickness_in_mm
         wls_ext_gap   = self.wls_ext_gap
+        
         # if there is also the reflector, just add its thickness and gap for a more conservative container
-        d = sipm_z * 2 + sipm_gap if not self.reflector else sipm_z * 2 + sipm_gap + self.reflector_thickness * 2 + self.reflector_gap
+        d = sipm_z * 2 + sipm_gap
+        d = d + self.reflector_thickness * 2 + self.reflector_gap if self.reflector else d
         d = d + (wls_ext_thick + wls_ext_gap)* 2  if self.wls_material else d
 
-        if self.geometry == "polygon":
+        if self.lg_geometry == "polygon":
             r_ext = self.apothem + d
             # check if there is external WLS to add its thickness and gap
             z_ext = self.lg_z / 2 + wls_ext_thick * 2 + wls_ext_gap if self.wls_material else self.lg_z / 2
             zPlanes = [-z_ext, z_ext]              
             rInner = [0.0, 0.0]
             rOuter = [r_ext, r_ext] 
-            container_s = pg4.geant4.solid.Polyhedra("lightguide_container_s", 0, 2 * pi, self.n_sides, len(zPlanes), zPlanes, rInner, rOuter, registry=self.reg, lunit="mm")
-        elif self.geometry == "rectangle":
-            z_ext = self.lg_z / 2 + wls_ext_thick * 2 + wls_ext_gap if self.wls_material else self.lg_z / 2
+            container_s = pg4.geant4.solid.Polyhedra("lightguide_container_s", 0, 2 * pi, self.lg_nsides, len(zPlanes), zPlanes, rInner, rOuter, registry=self.reg, lunit="mm")
+        elif self.lg_geometry == "rectangle":
+            # simple case, with only light guide ans SiPM + SiPM gap
+            z = self.lg_z / 2 + self.sipm_gap + 2 * self.sipm_z
+            # check if there is external WLS to add its thickness and gap
+            z_ext = z + wls_ext_thick * 2 + wls_ext_gap if self.wls_material else self.lg_z / 2
             container_s = pg4.geant4.solid.Box("lightguide_container_s", self.lg_x + d, self.lg_y + d, 2 * z_ext, registry=self.reg, lunit="mm")
         else:
-            raise ValueError(f"Unknown Light Guide geometry: {self.geometry}")
+            raise ValueError(f"Unknown Light Guide geometry: {self.lg_geometry}")
         
         self.container_l = pg4.geant4.LogicalVolume(container_s, self.reg.materialDict["lAr"], "lightguide_container_l", registry=self.reg)
-        self.container_l.pygeom_color_rgba = False #
+        self.container_l.pygeom_color_rgba =  (1, 0., 0., 0.5) #False #
 
 
     def construct_light_guide_solid(self): 
         """Constructs the solid for the Light Guide."""
-        if self.geometry == "polygon":
+        if self.lg_geometry == "polygon":
             zPlanes = [-self.lg_z / 2, self.lg_z / 2]
             rInner = [0.0, 0.0]
             rOuter = [self.apothem, self.apothem]
 
-            lightguide_s = pg4.geant4.solid.Polyhedra("lightguide_s", 0, 2 * pi, self.n_sides, len(zPlanes), zPlanes, rInner, rOuter, registry=self.reg, lunit="mm")
-        elif self.geometry == "rectangle":
+            lightguide_s = pg4.geant4.solid.Polyhedra("lightguide_s", 0, 2 * pi, self.lg_nsides, len(zPlanes), zPlanes, rInner, rOuter, registry=self.reg, lunit="mm")
+        elif self.lg_geometry == "rectangle":
             lightguide_s = pg4.geant4.solid.Box("lightguide_s", self.lg_x, self.lg_y, self.lg_z, registry=self.reg, lunit="mm")
         else:
-            raise ValueError(f"Unknown Light Guide geometry: {self.geometry}")
+            raise ValueError(f"Unknown Light Guide geometry: {self.lg_geometry}")
         
         return lightguide_s
 
@@ -138,20 +148,18 @@ class LightGuide:
     def place_detectors(self):
         """Chooses and places SiPMs based on configuration."""
         
-        lightguide_container_l = self.container_l
+        # lightguide_container_l = self.container_l
        
-        if self.geometry == "polygon":
+        if self.lg_geometry == "polygon":
 
-            sipm_per_side = self.sipm_number // self.n_sides
+            sipm_per_side = self.sipm_number // self.lg_nsides
             if self.sipm_placement != "all": 
-                sipm_per_side = (self.sipm_number * 2) // self.n_sides
+                sipm_per_side = (self.sipm_number * 2) // self.lg_nsides
                 
             sipm_index = 0
             sipm_z = self.reg.solidDict["sipm_s"].pZ
 
-            # pg4.geant4.PhysicalVolume([0,0,0], [0, 0, -self.sipm_gap/2], self.sipm_l, "sipm", self.det_l, registry=self.reg)
-
-            for side in range(self.n_sides):
+            for side in range(self.lg_nsides):
 
                 # Skip sides based on SiPM placement configuration
                 place_sipm_on_side = True
@@ -161,7 +169,7 @@ class LightGuide:
                     place_sipm_on_side = False 
 
                 # Angle corresponding to the center of each side of the polygon
-                side_angle = 2 * pi * side / self.n_sides + pi / self.n_sides
+                side_angle = 2 * pi * side / self.lg_nsides + pi / self.lg_nsides
                 
                 # Position along each side for translation
                 det_side_cx = (self.apothem + sipm_z/2) * cos(side_angle)
@@ -187,35 +195,30 @@ class LightGuide:
                         y_pos = det_side_cy + offset * ty
                         translation = [x_pos, y_pos, 0]
 
-                        # Detector Placement 
-                        # pg4.geant4.PhysicalVolume(rotation, translation, self.det_l, f"det_{sipm_index}", lightguide_container_l, registry=self.reg)
-                        # pg4.geant4.PhysicalVolume([0,0,0], [0, 0, -self.sipm_gap/2], self.sipm_l, f"sipm_{sipm_index}", self.det_l, registry=self.reg)
-                        
-                        # SiPM without detector container, hopefully removes overlapping
                         pg4.geant4.PhysicalVolume(rotation, translation, self.sipm_l, f"sipm_{sipm_index}", self.container_l, registry=self.reg)
 
                         sipm_index += 1
 
-        elif self.geometry == "rectangle":
+        elif self.lg_geometry == "rectangle":
 
-            sipm_per_side = self.sipm_number // self.n_sides
+            sipm_per_side = self.sipm_number // self.lg_nsides
             if self.sipm_placement != "all": 
-                sipm_per_side = (self.sipm_number * 2) // self.n_sides
+                sipm_per_side = (self.sipm_number * 2) // self.lg_nsides
                 
             sipm_index = 0
             sipm_z = self.reg.solidDict["sipm_s"].pZ
 
-            for side in range(self.n_sides):
+            for side in range(self.lg_nsides):
                 # Skip sides based on SiPM placement configuration
                 place_sipm_on_side = True
                 if self.sipm_placement == "left_right" and side % 2 != 0:       place_sipm_on_side = False
                 elif self.sipm_placement == "top_bottom" and side % 2 == 0:     place_sipm_on_side = False 
-                    
-                if self.n_sides != 4:
+
+                if self.lg_nsides != 4:
                     raise ValueError("Placement for rectangular geometry requires n_sides = 4.")
                     
                 # Angle corresponding to the center of each side of the polygon
-                side_angle = 2 * pi * side / self.n_sides 
+                side_angle = 2 * pi * side / self.lg_nsides 
 
                 # Other variables for SiPM placement
                 r = self.lg_x * sin(side_angle) + self.lg_z * cos(side_angle)
@@ -296,13 +299,13 @@ class LightGuide:
             self.construct_external_wls()
 
         # Rotation and Translation of the Light Guide Container
-        if self.geometry == "polygon":
-            rotation = [pi/2, 0, pi/self.n_sides] # Polygonal rotation
+        if self.lg_geometry == "polygon":
+            rotation = [pi/2, 0, pi/self.lg_nsides] # Polygonal rotation
             panel_y = self.reg.solidDict["panel_s"].pY
             lg_z = self.lg_z
             translation = [0, panel_y/2 + lg_z/2 + self.gap_from_panel, 0]
             self.container_pv = pg4.geant4.PhysicalVolume(rotation, translation, self.container_l, "lightguide_container", parent_lv, registry=self.reg)        
-        elif self.geometry == "rectangle":
+        elif self.lg_geometry == "rectangle":
              lg_y = self.lg_y
              panel_y = self.reg.solidDict["panel_s"].pY
              rotation = [0, 0, 0] # No Rotation for Rectangular geometry
