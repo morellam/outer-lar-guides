@@ -1,4 +1,4 @@
-import pygeomtools
+from pygeomtools import write_pygeom
 import pyg4ometry as pg4
 
 import light_guide
@@ -34,7 +34,7 @@ def main():
 
     # Export Geometry to GDML
     gdml_filename = "geom.gdml"
-    pygeomtools.write_pygeom(reg, gdml_filename)
+    write_pygeom(reg, gdml_filename)
     print(f"\nSuccessfully exported geometry to {gdml_filename}\n")
 
 
