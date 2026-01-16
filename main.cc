@@ -2,18 +2,26 @@
 #include "RMGLog.hh"
 #include "RMGManager.hh"
 
+#include "LGOutputScheme.hh"
+
 int main(int argc, char** argv) {
 
-  // RMGLog::SetLogLevel(RMGLog::debug);
+    // RMGLog::SetLogLevel(RMGLog::debug);
 
-  RMGManager manager("light-guide", argc, argv);
-  manager.GetDetectorConstruction()->IncludeGDMLFile("geom.gdml");
+    RMGManager manager("light-guide", argc, argv);
+    manager.GetDetectorConstruction()->IncludeGDMLFile("geom.gdml");
 
-  std::string macro = argc > 1 ? argv[1] : "";
-  if (!macro.empty()) manager.IncludeMacroFile(macro);
+    auto user_init = manager.GetUserInit();
+    user_init->AddOptionalOutputScheme<LGOutputScheme>("LGOutputScheme");
 
-  manager.Initialize();
-  manager.Run();
+    //  Need at least 1 active detector, otherwise persistency not enabled (even if manually setting it)
+    manager.GetDetectorConstruction()->RegisterDetector(kOptical, "sipm_0", 0);
 
-  return 0;
+    std::string macro = argc > 1 ? argv[1] : "";
+    if (!macro.empty()) manager.IncludeMacroFile(macro);
+
+    manager.Initialize();
+    manager.Run();
+
+    return 0;
 }

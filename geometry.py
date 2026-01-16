@@ -11,11 +11,12 @@ def main():
     reg = pg4.geant4.Registry()
     define_materials(reg)
 
-    # Setup World and LAr Container
+    # Setup World
     world_s = pg4.geant4.solid.Box("world_s", 5000, 5000, 5000, registry=reg, lunit="mm")
     world_l = pg4.geant4.LogicalVolume(world_s, "G4_Galactic", "world_l", registry=reg)
     reg.setWorld(world_l)
 
+    # Setup LAr container
     container_s = pg4.geant4.solid.Box("container_s", 5000, 5000, 5000, registry=reg, lunit="mm")
     container_l = pg4.geant4.LogicalVolume(container_s, reg.materialDict["lAr"], "container_l", registry=reg)
     container_l.pygeom_color_rgba = False

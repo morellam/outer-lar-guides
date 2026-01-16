@@ -8,5 +8,5 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
   find_package(remage REQUIRED COMPONENTS GDML)
 endif()
 
-add_executable(light-guide main.cc)
+add_executable(light-guide main.cc LGOutputScheme.hh LGOutputScheme.cc)
 target_link_libraries(light-guide PUBLIC RMG::remage)
