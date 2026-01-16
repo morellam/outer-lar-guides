@@ -1,0 +1,23 @@
+/RMG/Manager/Logging/LogLevel detail
+
+/RMG/Processes/OpticalPhysics true
+/RMG/Processes/OpticalPhysicsMaxOneWLSPhoton true
+
+/RMG/Geometry/RegisterDetector Optical sipm_.* 1
+
+####/RMG/Output/ActivateOutputScheme Track
+/RMG/Output/ActivateOutputScheme LGOutputScheme
+
+/run/initialize
+
+/RMG/Output/NtuplePerDetector false
+/RMG/Output/FileName boh.root
+
+/RMG/Generator/Select GPS
+/gps/position 0 0.8 0 m
+/gps/particle opticalphoton
+/gps/direction 0 -1 0
+####/gps/energy 9.69 eV      # 128nm, LAr peak emission
+/gps/energy 7.09 eV      # 175nm, Xe-doped LAr peak emission
+
+/run/beamOn 1000000
