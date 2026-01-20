@@ -11,13 +11,18 @@
 /run/initialize
 
 /RMG/Output/NtuplePerDetector false
-/RMG/Output/FileName boh.root
+/RMG/Output/FileName left_right_square.root
 
 /RMG/Generator/Select GPS
-/gps/position 0 0.8 0 m
 /gps/particle opticalphoton
-/gps/direction 0 -1 0
-####/gps/energy 9.69 eV      # 128nm, LAr peak emission
-/gps/energy 7.09 eV      # 175nm, Xe-doped LAr peak emission
+/gps/pos/type Plane
+/gps/pos/shape Rectangle
+/gps/pos/centre 0 0.7 0 m
+/gps/pos/halfx 500 mm
+/gps/pos/halfy 170 mm
+/gps/pos/rot1 1 0 0
+/gps/pos/rot2 0 0 1
+/gps/energy 9.69 eV      # 128nm, LAr peak emission
+####/gps/energy 7.09 eV      # 175nm, Xe-doped LAr peak emission
 
-/run/beamOn 1000000
+/run/beamOn 50000000
