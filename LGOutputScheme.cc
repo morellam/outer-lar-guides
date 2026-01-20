@@ -42,11 +42,15 @@ void LGOutputScheme::AssignOutputNames(G4AnalysisManager* ana) {
     "LGOutput"
   );
 
-  ana->CreateNtupleIColumn(id, "evtid");
+  ana->CreateNtupleIColumn(id, "evtID");
   ana->CreateNtupleDColumn(id, "lambda_nm");
   ana->CreateNtupleDColumn(id, "time_ps");
   ana->CreateNtupleDColumn(id, "angle");
   ana->CreateNtupleIColumn(id, "trackID");
+  ana->CreateNtupleDColumn(id, "track_vertex_x_mm");
+  ana->CreateNtupleDColumn(id, "track_vertex_y_mm");
+  ana->CreateNtupleDColumn(id, "track_vertex_z_mm");
+  ana->CreateNtupleDColumn(id, "track_length_mm");
 
   ana->FinishNtuple(id);
 }
@@ -116,6 +120,10 @@ void LGOutputScheme::StoreEvent(const G4Event* event) {
     ana->FillNtupleDColumn(ntid, col++, time_phot_det[i]);
     ana->FillNtupleDColumn(ntid, col++, angle_phot_det[i]);
     ana->FillNtupleIColumn(ntid, col++, trackID_phot_det[i]);
+    ana->FillNtupleDColumn(ntid, col++, prodPositionMap_phot[trackID_phot_det[i]].x());
+    ana->FillNtupleDColumn(ntid, col++, prodPositionMap_phot[trackID_phot_det[i]].y());
+    ana->FillNtupleDColumn(ntid, col++, prodPositionMap_phot[trackID_phot_det[i]].z());
+    ana->FillNtupleDColumn(ntid, col++, trackLengthMap_phot_det[trackID_phot_det[i]]);
     ana->AddNtupleRow(ntid);
   }
 }
