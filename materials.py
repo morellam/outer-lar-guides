@@ -8,6 +8,64 @@ def photon_energy_from_nm(wavelength_nm):
     c_ms  = 2.99792458e8     # m/s
     return (h_eVs * c_ms * 1e9) / wavelength_nm  # eV
 
+def load_array_from_txt(filename):
+    return np.loadtxt(filename, delimiter=",")
+
+
+def load_wls_abs(concentration):
+    C_int = int(round(concentration * 10))
+    filename = f"data/BBT_abs_length_C{C_int:02d}.txt"
+    return load_array_from_txt(filename)
+
+
+def build_optical_properties(WLSConc):
+
+    wl = np.arange(600, 279, -1)  # lunghezze d’onda
+    n = wl.size
+
+    photon_energy = photon_energy_from_nm(wl)  # oppure from_nm_to_ev(wl) se serve
+
+    WLS_scint_spectrum = load_array_from_txt("data/BBT_emiss_spectrum.txt")
+    PMMA_abs_length = load_array_from_txt("data/PMMA_abs_length.txt")
+
+    # --- WLS ---
+    if WLSConc >= 0:
+        WLS_abs = load_wls_abs(WLSConc)
+        idx_wls = np.clip(600 - wl, 0, len(WLS_abs) - 1)
+        wls_vals = WLS_abs[idx_wls]
+        WLSABS = np.where(wl < 430, wls_vals, 1000.0)
+    else:
+        WLSABS = np.zeros(n)
+
+    # --- SCINT ---
+    idx_scint = np.clip(wl - 380, 0, len(WLS_scint_spectrum) - 1)
+    SCINT = np.where(wl >= 380, WLS_scint_spectrum[idx_scint], 0.0)
+
+    # --- ABS ---
+    if WLSConc >= 0:
+        idx_wls = np.clip(600 - wl, 0, len(WLS_abs) - 1)
+        wls_vals = WLS_abs[idx_wls]
+
+        idx_pm = np.clip(550 - wl, 0, len(PMMA_abs_length) - 1)
+        pm_vals = 1.5 * PMMA_abs_length[idx_pm]
+
+        ABS = np.where(wl >= 430, wls_vals, pm_vals)
+    else:
+        idx_pm = np.clip(550 - wl, 0, len(PMMA_abs_length) - 1)
+        pm_vals = 1.5 * PMMA_abs_length[idx_pm]
+        ABS = np.where(wl >= 551, 30.0, pm_vals)
+
+    # --- RAYLEIGH ---
+    RAYLEIGH = np.where(wl >= 380, 2.0, 10.0)
+
+    return {
+        "PhotonEnergy": photon_energy,
+        "ABS": ABS,
+        "WLSABS": WLSABS,
+        "SCINT": SCINT,
+        "RAYLEIGH": RAYLEIGH,
+    }
+
 
 def define_PMMA(reg: pg4.geant4.Registry):
     """Define PMMA material and its optical properties."""
@@ -22,10 +80,25 @@ def define_PMMA(reg: pg4.geant4.Registry):
     pmma.add_element_natoms(C,5)
     pmma.add_element_natoms(O,2)
 
-    photon_energy = np.loadtxt('data/PMMA_energy.txt', delimiter=',')
-    abs_length = np.loadtxt('data/PMMA_abs_length.txt', delimiter=',')
+    # old way
+    # photon_energy = np.loadtxt('data/PMMA_energy.txt', delimiter=',')
+    # abs_length = np.loadtxt('data/PMMA_abs_length.txt', delimiter=',')
+    # pmma.addVecProperty("ABSLENGTH", photon_energy, abs_length, vunit="m")
 
-    pmma.addVecProperty("ABSLENGTH", photon_energy, abs_length, vunit="m")
+    BBT_optical_properties = build_optical_properties(1)
+    photon_energy = BBT_optical_properties["PhotonEnergy"]
+    ABS      = BBT_optical_properties["ABS"]
+    WLSABS   = BBT_optical_properties["WLSABS"]
+    SCINT    = BBT_optical_properties["SCINT"]
+    RAYLEIGH = BBT_optical_properties["RAYLEIGH"]
+
+    pmma.addVecProperty("ABSLENGTH", photon_energy, ABS, vunit="m")
+    # add check on concentration level (>0 or not)
+    pmma.addVecProperty("WLSABSLENGTH", photon_energy, WLSABS, vunit="m")
+    pmma.addVecProperty("WLSCOMPONENT", photon_energy, SCINT, vunit="m")
+    pmma.addVecProperty("RAYLEIGH", photon_energy, RAYLEIGH, vunit="m")
+    pmma.addConstProperty("WLSTIMECONSTANT", 0.5, "ns")  # in ns
+
 
 def define_pTP(reg: pg4.geant4.Registry):
     """Define p-Terphenyl (pTP) material and its optical properties."""
