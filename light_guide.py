@@ -22,6 +22,7 @@ class LightGuide:
         self.lg_geometry = self.lg_cfg.get("geometry", "rectangle")
         self.lg_nsides   = self.lg_cfg.get("n_sides", 4)
         self.lg_material = self.lg_cfg.get("wls", "PMMA")
+        self.lg_BBT_conc = self.lg_cfg.get("BBT_concentration", 0)
         self.lg_x, self.lg_y, self.lg_z = self.lg_cfg["dimensions_in_mm"]
 
         self.wls_config          = self.config["external_wls"]
@@ -200,7 +201,7 @@ class LightGuide:
                         y_pos = det_side_cy + offset * ty
                         translation = [x_pos, y_pos, 0]
 
-                        pg4.geant4.PhysicalVolume(rotation, translation, self.sipm_l, f"sipm_{sipm_index}", self.container_l, registry=self.reg)
+                        pg4.geant4.PhysicalVolume(rotation, translation, self.sipm_l, f"sipm_{sipm_index:02d}", self.container_l, registry=self.reg)
 
                         sipm_index += 1
 
@@ -250,7 +251,7 @@ class LightGuide:
                         z_pos = det_side_cz + current_offset * cos(side_angle)
                         translation = [x_pos, 0, z_pos]
                         
-                        pg4.geant4.PhysicalVolume(rotation, translation, self.sipm_l, f"sipm_{sipm_index}", self.container_l, registry=self.reg)
+                        pg4.geant4.PhysicalVolume(rotation, translation, self.sipm_l, f"sipm_{sipm_index:02d}", self.container_l, registry=self.reg)
                         
                         sipm_index += 1
             
@@ -267,7 +268,7 @@ class LightGuide:
         self.sipm_l.pygeom_color_rgba = (0.0, 1.0, 0.0, 1.0) # green
 
         # set efficiency to 1 and reflectivity to 0 for all wavelength (for testing purposes) 
-        energy = np.array([1.0, 15.0])
+        energy = np.array([1, 20.0])
         eff    = np.array([1.0, 1.0])
         refl   = np.array([0., 0.])
 
@@ -306,11 +307,11 @@ class LightGuide:
             translation = [0, panel_y/2 + lg_z/2 + self.gap_from_panel, 0]
             self.container_pv = pg4.geant4.PhysicalVolume(rotation, translation, self.container_l, "lightguide_container", parent_lv, registry=self.reg)        
         elif self.lg_geometry == "rectangle":
-             lg_y = self.lg_y
-             panel_y = self.reg.solidDict["panel_s"].pY
-             rotation = [0, 0, 0] # No Rotation for Rectangular geometry
-             translation = [0, panel_y/2 + lg_y/2 + self.gap_from_panel, 0]
-             self.container_pv = pg4.geant4.PhysicalVolume(rotation, translation, self.container_l, "lightguide_container", parent_lv, registry=self.reg) 
+            lg_y = self.lg_y
+            panel_y = self.reg.solidDict["panel_s"].pY
+            rotation = [0, 0, 0] # No Rotation for Rectangular geometry
+            translation = [0, panel_y/2 + lg_y/2 + self.gap_from_panel, 0]
+            self.container_pv = pg4.geant4.PhysicalVolume(rotation, translation, self.container_l, "lightguide_container", parent_lv, registry=self.reg) 
 
                     
     def place_reflector(self):
