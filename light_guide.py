@@ -8,24 +8,24 @@ from typing import Tuple, Optional
 
 @dataclass
 class LightGuideConfig:
-    """Dataclass to read properties of Light Guide from config file"""
+    """Dataclass storing geometrical and materials properties of the light guide."""
     dimensions_in_mm: Tuple[float, float, float]
     geometry: str = "rectangle"
     n_sides: int = 4
-    wls: str = "PMMA"
+    wls_material: str = "PMMA"
     BBT_concentration: Optional[float] = 0.0
 
 @dataclass
 class WLSConfig:
-    """Dataclass to read properties of WLS from config file"""
-    material: str = "False"  # Default in base al tuo YAML
+    """Dataclass storing material properties of external WaveLength Shifting (WLS) layer."""
+    material: Optional[str] = None
     thickness_in_mm: float = 0.0
     gap_in_mm: float = 0.0
-    substrate: bool = False
+    substrate: Optional[str] = None
 
 @dataclass
 class SiPMConfig:
-    """Dataclass to read SiPM properties from config file"""
+    """Dataclass storing properties of the SiPMs."""
     dimensions_in_mm: Tuple[float, float, float] = (6.0, 6.0, 1.0)
     placement: str = "left_right"
     number: int = 12
@@ -33,7 +33,7 @@ class SiPMConfig:
 
 @dataclass
 class ReflectorConfig:
-    """Dataclass to read Reflector geometrical properties from config"""
+    """Dataclass sotring geometrical properties of the reflector."""
     placement: bool = False
     gap_in_mm: float = 0.1
 
@@ -58,7 +58,7 @@ class LightGuide:
         # Variabili di stato interne (non dipendenti dal YAML)
         self.gap_from_panel_in_mm = 50.0
         self.reflector_thickness_in_mm = 0.150
-        
+
         # Compute apothem and side length for polygonal geometry
         if self.lg.geometry == "polygon":
             lg_x = self.lg.dimensions_in_mm[0]
@@ -68,24 +68,18 @@ class LightGuide:
 
     def construct_light_guide_container(self): 
         """Constructs the container solid for the Light Guide."""
-        
         lg_x, lg_y, lg_z = self.lg.dimensions_in_mm
         sipm_x, sipm_y, sipm_z = self.sipm.dimensions_in_mm
-        
         sipm_gap = self.sipm.gap_in_mm
         wls_ext_thick = self.wls.thickness_in_mm
         wls_ext_gap = self.wls.gap_in_mm
-        
-        # Gestiamo il booleano "False" come stringa derivante dal file YAML
-        wls_material = self.wls.material if self.wls.material != "False" else None
-        
+        wls_material = self.wls.material
         reflector_gap = self.reflector.gap_in_mm
         reflector_placement = self.reflector.placement
 
         if self.lg.geometry == "polygon":
             d = sipm_z * 2 + sipm_gap
             d = d + self.reflector_thickness_in_mm * 2 + reflector_gap if reflector_placement else d
-            
             r_ext = self.apothem + d
             z_ext = lg_z / 2 + wls_ext_thick * 2 + wls_ext_gap if wls_material else lg_z / 2
             zPlanes = [-z_ext, z_ext]              
@@ -124,21 +118,19 @@ class LightGuide:
             lightguide_s = pg4.geant4.solid.Box("lightguide_s", lg_x, lg_y, lg_z, registry=self.reg, lunit="mm")
         else:
             raise ValueError(f"Unknown Light Guide geometry: {self.lg.geometry}")
-        
         return lightguide_s
 
 
     def construct_external_wls(self): 
         """Construct external WLS, if any."""
-        wls_material = self.wls.material if self.wls.material != "False" else None
-        
+        wls_material = self.wls.material
         if not wls_material:
             return None
-        
+
         wls_thickness = self.wls.thickness_in_mm
         wls_gap = self.wls.gap_in_mm
         lg_x, lg_y, lg_z = self.lg.dimensions_in_mm
-        
+                
         if self.lg.geometry == "polygon":
             zPlanes = [-wls_thickness / 2, wls_thickness / 2]
             rInner = [0.0, 0.0]
@@ -313,7 +305,7 @@ class LightGuide:
 
         # Light Guide
         lightguide_s = self.construct_light_guide_solid()
-        lightguide_l = pg4.geant4.LogicalVolume(lightguide_s, self.lg.wls, "lightguide_l", registry=self.reg)
+        lightguide_l = pg4.geant4.LogicalVolume(lightguide_s, self.lg.wls_material, "lightguide_l", registry=self.reg)
         lightguide_l.pygeom_color_rgba = (0.0, 0.0, 1.0, 0.5) # blu
         pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, 0], lightguide_l, "lightguide", self.container_l, registry=self.reg)
 
@@ -322,7 +314,7 @@ class LightGuide:
         if self.reflector.placement:
             self.place_reflector()
 
-        if self.wls.material != "False":
+        if self.wls.material is not None:
             self.construct_external_wls()
 
         lg_x, lg_y, lg_z = self.lg.dimensions_in_mm
