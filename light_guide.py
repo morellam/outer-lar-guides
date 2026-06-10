@@ -2,7 +2,7 @@ import yaml
 import pyg4ometry as pg4
 import numpy as np
 
-from math import pi, cos, sin
+from math import pi, cos, sin, tan
 from dataclasses import dataclass
 from typing import Tuple, Optional
 
@@ -218,6 +218,101 @@ class RectangularLightGuide(BaseLightGuide):
         self.container_pv = pg4.geant4.PhysicalVolume([0, 0, 0], translation, self.container_l, "lightguide_container", parent_lv, registry=self.registry)
         
 
+class PolygonalLightGuide(BaseLightGuide):
+    """Specific implementation of a general n-sided polygonal light guide."""
+
+    def __init__(self, config_path: str, registry: pg4.geant4.Registry):
+        super().__init__(config_path, registry)
+        lg_x = self.lg.dimensions_in_mm[0]
+        self.apothem = lg_x / 2 / tan(pi / self.lg.n_sides)
+        self.side_length = lg_x
+    
+    def construct_light_guide_container(self):
+        lg_z = self.lg.dimensions_in_mm[2]
+        d = self.sipm.dimensions_in_mm[2] * 2 + self.sipm.gap_in_mm
+        if self.reflector.placement:
+            d += self.reflector_thickness_in_mm * 2 + self.reflector.gap_in_mm
+            
+        r_ext = self.apothem + d
+        z_ext = lg_z / 2 + self.wls.thickness_in_mm * 2 + self.wls.gap_in_mm if self.wls.material else lg_z / 2
+        
+        container_s = pg4.geant4.solid.Polyhedra("lightguide_container_s", 0, 2 * pi, self.lg.n_sides, 2, [-z_ext, z_ext], [0.0, 0.0], [r_ext, r_ext], registry=self.registry, lunit="mm")
+        self.container_l = pg4.geant4.LogicalVolume(container_s, self.registry.materialDict["lAr"], "lightguide_container_l", registry=self.registry)
+        self.container_l.pygeom_color_rgba = False
+    
+    def construct_light_guide_solid(self):
+        lg_z = self.lg.dimensions_in_mm[2]
+        return pg4.geant4.solid.Polyhedra("lightguide_s", 0, 2 * pi, self.lg.n_sides, 2, [-lg_z / 2, lg_z / 2], [0.0, 0.0], [self.apothem, self.apothem], registry=self.registry, lunit="mm")
+
+    def construct_external_wls(self):
+        lg_z = self.lg.dimensions_in_mm[2]
+        wls_external_s = pg4.geant4.solid.Polyhedra("wls_external_s", 0, 2 * pi, self.lg.n_sides, 2, [-self.wls.thickness_in_mm / 2, self.wls.thickness_in_mm / 2], [0.0, 0.0], [self.apothem, self.apothem], registry=self.registry, lunit="mm")
+        z = self.wls.gap_in_mm + self.wls.thickness_in_mm / 2 + lg_z / 2
+        wls_external_l = pg4.geant4.LogicalVolume(wls_external_s, self.registry.materialDict[self.wls.material], "wls_external_l", registry=self.registry)
+        wls_external_l.pygeom_color_rgba = (0.180, 0.600, 0.369, 1.0)
+        pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, z], wls_external_l, "wls_external_top", self.container_l, registry=self.registry)
+
+    def construct_reflector(self):
+        lg_z = self.lg.dimensions_in_mm[2]
+        self.reflector_s = pg4.geant4.solid.Box("reflector_s", self.side_length, lg_z, self.reflector_thickness_in_mm, lunit="mm", registry=self.registry)
+        self.reflector_l = pg4.geant4.LogicalVolume(self.reflector_s, self.registry.materialDict["PMMA"], "reflector_l", registry=self.registry)
+        self.reflector_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1)
+
+    def place_detectors(self):
+        sipm_per_side = (self.sipm.number * 2) // self.lg.n_sides if self.sipm.placement != "all" else self.sipm.number // self.lg.n_sides
+        sipm_index = 0
+        sipm_z = self.registry.solidDict["sipm_s"].pZ
+
+        for side in range(self.lg.n_sides):
+            if (self.sipm.placement == "left_right" and side % 2 != 0) or (self.sipm.placement == "top_bottom" and side % 2 == 0):
+                continue
+
+            side_angle = 2 * pi * side / self.lg.n_sides + pi / self.lg.n_sides
+            cx = (self.apothem + sipm_z/2) * cos(side_angle)
+            cy = (self.apothem + sipm_z/2) * sin(side_angle)
+            
+            tx, ty = cos(side_angle + pi/2), sin(side_angle + pi/2)
+            rotation = [pi/2, side_angle + pi/2, 0]
+                
+            for j in range(sipm_per_side): 
+                offset = (j - (sipm_per_side - 1)/2) * (self.side_length / sipm_per_side) if sipm_per_side > 1 else 0
+                pg4.geant4.PhysicalVolume(rotation, [cx + offset * tx, cy + offset * ty, 0], self.sipm_l, f"sipm_{sipm_index:02d}", self.container_l, registry=self.registry)
+                sipm_index += 1
+
+    def place_reflector(self):
+        self.construct_reflector()
+        sipm_per_side = (self.sipm.number * 2) // self.lg.n_sides if self.sipm.placement != "all" else self.sipm.number // self.lg.n_sides
+
+        for side in range(self.lg.n_sides):
+            place_sipm = self.sipm.placement == "all" or (self.sipm.placement == "left_right" and side % 2 == 0) or (self.sipm.placement == "top_bottom" and side % 2 != 0)
+            side_angle = 2 * pi * side / self.lg.n_sides + pi / self.lg.n_sides
+            
+            cx = (self.apothem + self.reflector_thickness_in_mm/2 + self.reflector.gap_in_mm) * cos(side_angle)
+            cy = (self.apothem + self.reflector_thickness_in_mm/2 + self.reflector.gap_in_mm) * sin(side_angle)
+            rotation = [pi/2, side_angle + pi/2, 0]
+
+            if not place_sipm:
+                pg4.geant4.PhysicalVolume(rotation, [cx, cy, 0], self.reflector_l, f"reflector_{side}", self.container_l, registry=self.registry)
+                continue
+                
+            current_reflector_s = self.reflector_s
+            for j in range(sipm_per_side): 
+                offset = (j - (sipm_per_side - 1)/2) * (self.side_length / sipm_per_side) if sipm_per_side > 1 else 0
+                current_reflector_s = pg4.geant4.solid.Subtraction(f"reflector_s_{side}_{j}", current_reflector_s, self.sipm_s, [[0, 0, 0], [offset, 0, 0]], registry=self.registry)                
+            
+            current_reflector_l = pg4.geant4.LogicalVolume(current_reflector_s, self.registry.materialDict["PMMA"], f"subtr_reflector_l_{side}_{j}", registry=self.registry)
+            current_reflector_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1)
+            pg4.geant4.PhysicalVolume(rotation, [cx, cy, 0], current_reflector_l, f"subtr_reflector_{side}", self.container_l, registry=self.registry)
+
+    def place_container_in_parent(self, parent_lv):
+        lg_z = self.lg.dimensions_in_mm[2]
+        panel_y = self.registry.solidDict["panel_s"].pY
+        rotation = [pi/2, 0, pi/self.lg.n_sides]
+        translation = [0, panel_y/2 + lg_z/2 + self.gap_from_panel_in_mm, 0]
+        self.container_pv = pg4.geant4.PhysicalVolume(rotation, translation, self.container_l, "lightguide_container", parent_lv, registry=self.registry)
+
+
+
 def create_light_guide(config_path: str, registry: pg4.geant4.Registry) -> BaseLightGuide:
     """Factory function that returns the right LightGuide object depending on the configuration geometry."""
     with open(config_path, "r", encoding="utf-8") as f:
@@ -226,8 +321,7 @@ def create_light_guide(config_path: str, registry: pg4.geant4.Registry) -> BaseL
     geometry = data.get("light_guide", {}).get("geometry", "rectangle")
     
     if geometry == "polygon":
-        # return PolygonalLightGuide(config_path, registry) # FIX THIS!!!
-        return RectangularLightGuide(config_path, registry)
+        return PolygonalLightGuide(config_path, registry)
     elif geometry == "rectangle":
         return RectangularLightGuide(config_path, registry)
     else:

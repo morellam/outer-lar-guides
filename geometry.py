@@ -34,7 +34,7 @@ def main():
     light_guide_builder.build_light_guide(container_l)
 
     # Export Geometry to GDML
-    gdml_filename = "new_geom.gdml"
+    gdml_filename = "geom.gdml"
     write_pygeom(reg, gdml_filename)
     print(f"\nSuccessfully exported geometry to {gdml_filename}\n")
 
