@@ -2,6 +2,7 @@ from pygeomtools import write_pygeom
 import pyg4ometry as pg4
 
 import light_guide
+from surfaces import define_surfaces
 from materials import define_materials
 
 
@@ -10,6 +11,7 @@ def main():
     config_file = "config.yaml"
     reg = pg4.geant4.Registry()
     define_materials(reg)
+    surfaces = define_surfaces(reg)
 
     # Setup World
     world_s = pg4.geant4.solid.Box("world_s", 10000, 10000, 10000, registry=reg, lunit="mm")
@@ -30,7 +32,7 @@ def main():
     # #pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, 0], panel_l, "panel", container_l, registry=reg)
 
     # Light Guide Construction
-    light_guide_builder = light_guide.create_light_guide(config_file, reg)
+    light_guide_builder = light_guide.create_light_guide(config_file, reg, surfaces)
     light_guide_builder.build_light_guide(container_l)
 
     # Export Geometry to GDML
