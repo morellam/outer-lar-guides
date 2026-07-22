@@ -29,7 +29,7 @@ class SiPMConfig:
     dimensions_in_mm: Tuple[float, float, float] = (6.0, 6.0, 1.0)
     placement: str = "left_right"
     number: int = 12
-    gap_in_mm: float = 0.1
+    gap_in_mm: float = 0.
 
 @dataclass
 class ReflectorConfig:
@@ -142,7 +142,7 @@ class RectangularLightGuide(BaseLightGuide):
         y = self.wls.gap_in_mm + self.wls.thickness_in_mm / 2 + lg_y / 2
         wls_external_l = pg4.geant4.LogicalVolume(wls_external_s, self.registry.materialDict[self.wls.material], "wls_external_l", registry=self.registry)
         wls_external_l.pygeom_color_rgba = (0.180, 0.600, 0.369, 1.0)
-        pg4.geant4.PhysicalVolume([0, 0, 0], [0, y, 0], wls_external_l, "wls_external_top", self.container_l, registry=self.registry)
+        pg4.geant4.PhysicalVolume([0, 0, 0], [0, y, 0], wls_external_l, "wls_external", self.container_l, registry=self.registry)
 
     def construct_reflector(self):
         lg_x, lg_y, lg_z = self.lg.dimensions_in_mm
@@ -168,8 +168,8 @@ class RectangularLightGuide(BaseLightGuide):
             r = lg_x * sin(side_angle) + lg_z * cos(side_angle)
             distance_per_sipm = (abs(r) / sipm_per_side)
             
-            det_side_cx = (lg_x/2 + sipm_z/2) * cos(side_angle) 
-            det_side_cz = (lg_z/2 + sipm_z/2) * sin(side_angle)
+            det_side_cx = (lg_x/2 + sipm_z/2 + self.sipm.gap_in_mm) * cos(side_angle) 
+            det_side_cz = (lg_z/2 + sipm_z/2 + self.sipm.gap_in_mm) * sin(side_angle)
             rotation = [0, side_angle + pi/2, 0]
             
             for j in range(sipm_per_side): 
@@ -250,7 +250,7 @@ class PolygonalLightGuide(BaseLightGuide):
         z = self.wls.gap_in_mm + self.wls.thickness_in_mm / 2 + lg_z / 2
         wls_external_l = pg4.geant4.LogicalVolume(wls_external_s, self.registry.materialDict[self.wls.material], "wls_external_l", registry=self.registry)
         wls_external_l.pygeom_color_rgba = (0.180, 0.600, 0.369, 1.0)
-        pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, z], wls_external_l, "wls_external_top", self.container_l, registry=self.registry)
+        pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, z], wls_external_l, "wls_external", self.container_l, registry=self.registry)
 
     def construct_reflector(self):
         lg_z = self.lg.dimensions_in_mm[2]
@@ -268,8 +268,8 @@ class PolygonalLightGuide(BaseLightGuide):
                 continue
 
             side_angle = 2 * pi * side / self.lg.n_sides + pi / self.lg.n_sides
-            cx = (self.apothem + sipm_z/2) * cos(side_angle)
-            cy = (self.apothem + sipm_z/2) * sin(side_angle)
+            cx = (self.apothem + sipm_z/2 + self.sipm.gap_in_mm) * cos(side_angle)
+            cy = (self.apothem + sipm_z/2 + self.sipm.gap_in_mm) * sin(side_angle)
             
             tx, ty = cos(side_angle + pi/2), sin(side_angle + pi/2)
             rotation = [pi/2, side_angle + pi/2, 0]
