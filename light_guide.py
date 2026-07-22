@@ -179,29 +179,6 @@ class RectangularLightGuide(BaseLightGuide):
         lg_x, _, lg_z = self.lg.dimensions_in_mm
         sipm_per_side = (self.sipm.number * 2) // self.lg.n_sides if self.sipm.placement != "all" else self.sipm.number // self.lg.n_sides
 
-        # energy = np.array([2.07, 2.75, 3.26, 3.35, 4.13, 4.96])
-        # reflectivity = np.array([0.98, 0.98, 0.98, 0.1, 0.1, 0.1])
-        # specularlobe = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
-        # specularspike = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
-        # backscatter = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        # rindex = np.array([1.6, 1.6, 1.6, 1.6, 1.6, 1.6])
-        # efficiency = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
-        # vikuiti_optical_surface = pg4.geant4.solid.OpticalSurface(
-        #     name="vikuiti_optical_surface", 
-        #     finish="polished", 
-        #     model="unified",
-        #     surf_type="dielectric_metal", 
-        #     value=1, 
-        #     registry=self.registry
-        # )
-        # vikuiti_optical_surface.addVecProperty("REFLECTIVITY", energy, reflectivity, eunit="eV")
-        # vikuiti_optical_surface.addVecProperty("RINDEX", energy, rindex, eunit="eV")
-        # vikuiti_optical_surface.addVecProperty("SPECULARLOBECONSTANT", energy, specularlobe, eunit="eV")
-        # vikuiti_optical_surface.addVecProperty("SPECULARSPIKECONSTANT", energy, specularspike, eunit="eV")
-        # vikuiti_optical_surface.addVecProperty("BACKSCATTERCONSTANT", energy, backscatter, eunit="eV")
-        # vikuiti_optical_surface.addVecProperty("EFFICIENCY", energy, efficiency, eunit="eV")
-
         for side in range(self.lg.n_sides):
             is_vertical = side % 2 == 0
             place_sipm = self.sipm.placement == "all" or (self.sipm.placement == "left_right" and is_vertical) or (self.sipm.placement == "top_bottom" and not is_vertical)
