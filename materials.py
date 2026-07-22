@@ -11,12 +11,10 @@ def photon_energy_from_nm(wavelength_nm):
 def load_array_from_txt(filename):
     return np.loadtxt(filename, delimiter=",")
 
-
 def load_wls_abs(concentration):
     C_int = int(round(concentration * 10))
     filename = f"data/BBT_abs_length_C{C_int:02d}.txt"
     return load_array_from_txt(filename)
-
 
 def build_optical_properties(WLSConc):
 
@@ -26,7 +24,7 @@ def build_optical_properties(WLSConc):
     photon_energy = photon_energy_from_nm(wl)  # oppure from_nm_to_ev(wl) se serve
 
     WLS_scint_spectrum = load_array_from_txt("data/BBT_emiss_spectrum.txt")
-    PMMA_abs_length = load_array_from_txt("data/PMMA_abs_length.txt")
+    PMMA_abs_length = load_array_from_txt("data/PMMA_abs_length_alt.txt")
 
     # --- WLS ---
     if WLSConc >= 0:
@@ -66,7 +64,6 @@ def build_optical_properties(WLSConc):
         "RAYLEIGH": RAYLEIGH,
     }
 
-
 def define_PMMA(reg: pg4.geant4.Registry):
     """Define PMMA material and its optical properties."""
 
@@ -97,8 +94,7 @@ def define_PMMA(reg: pg4.geant4.Registry):
     pmma.addVecProperty("WLSABSLENGTH", photon_energy, WLSABS, vunit="m")
     pmma.addVecProperty("WLSCOMPONENT", photon_energy, SCINT, vunit="m")
     pmma.addVecProperty("RAYLEIGH", photon_energy, RAYLEIGH, vunit="m")
-    pmma.addConstProperty("WLSTIMECONSTANT", 0.5, "ns")  # in ns
-
+    pmma.addConstProperty("WLSTIMECONSTANT", 0.5, "ns")
 
 def define_pTP(reg: pg4.geant4.Registry):
     """Define p-Terphenyl (pTP) material and its optical properties."""

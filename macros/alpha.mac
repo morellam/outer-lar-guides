@@ -1,0 +1,23 @@
+/RMG/Manager/Logging/LogLevel detail
+
+/RMG/Processes/OpticalPhysics true
+/RMG/Processes/OpticalPhysicsMaxOneWLSPhoton true
+
+/RMG/Geometry/RegisterDetector Optical sipm_.* 00
+
+###/RMG/Output/ActivateOutputScheme Track
+/RMG/Output/ActivateOutputScheme LGOutputScheme
+
+/run/initialize
+
+/RMG/Output/NtuplePerDetector false
+####/RMG/Output/Track/StoreOpticalPhotons true
+/RMG/Output/FileName ./output/PDE/TPB/square_allside_120_reflector_TPB.root
+
+/RMG/Generator/Select GPS
+/gps/position 0 0.5 0 m
+/gps/particle alpha
+/gps/direction 0 -1 0
+/gps/energy 5000 keV
+
+/run/beamOn 500
