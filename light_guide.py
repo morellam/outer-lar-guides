@@ -35,7 +35,7 @@ class SiPMConfig:
 class ReflectorConfig:
     """Dataclass sotring geometrical properties of the reflector."""
     placement: bool = False
-    gap_in_mm: float = 0.1
+    gap_in_mm: Optional[float] = None
 
 
 class BaseLightGuide:
@@ -51,6 +51,9 @@ class BaseLightGuide:
         self.sipm = SiPMConfig(**config_dict.get("sipm", {}))
         self.wls = WLSConfig(**config_dict.get("external_wls", {}))
         self.reflector = ReflectorConfig(**config_dict.get("reflector", {}))
+
+        if self.reflector.gap_in_mm is None: 
+            self.reflector.gap_in_mm = self.sipm.gap_in_mm
 
         self.gap_from_panel_in_mm = 50.0
         self.reflector_thickness_in_mm = 0.150
@@ -84,11 +87,14 @@ class BaseLightGuide:
         self.sipm_l = pg4.geant4.LogicalVolume(self.sipm_s, "G4_Si", "sipm_l", registry=self.registry)
         self.sipm_l.pygeom_color_rgba = (0.0, 1.0, 0.0, 1.0)
 
-        # Optical Surface setup
         energy, eff, refl = np.array([1, 20.0]), np.array([1.0, 1.0]), np.array([0., 0.])
         sipm_optical_surface = pg4.geant4.solid.OpticalSurface(
-            name="sipm_optical_surface", finish="polished", model="unified",
-            surf_type="dielectric_metal", value=1, registry=self.registry
+            name="sipm_optical_surface", 
+            finish="polished", 
+            model="unified",
+            surf_type="dielectric_metal", 
+            value=1, 
+            registry=self.registry
         )
         sipm_optical_surface.addVecProperty("EFFICIENCY", energy, eff, eunit="eV")
         sipm_optical_surface.addVecProperty("REFLECTIVITY", energy, refl, eunit="eV")
@@ -184,6 +190,29 @@ class RectangularLightGuide(BaseLightGuide):
         lg_x, _, lg_z = self.lg.dimensions_in_mm
         sipm_per_side = (self.sipm.number * 2) // self.lg.n_sides if self.sipm.placement != "all" else self.sipm.number // self.lg.n_sides
 
+        energy = np.array([2.07, 2.75, 3.26, 3.35, 4.13, 4.96])
+        reflectivity = np.array([0.98, 0.98, 0.98, 0.1, 0.1, 0.1])
+        specularlobe = np.array([0.1, 0.1, 0.1, 0.1, 0.1, 0.1])
+        specularspike = np.array([0.8, 0.8, 0.8, 0.8, 0.8, 0.8])
+        backscatter = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        rindex = np.array([1.6, 1.6, 1.6, 1.6, 1.6, 1.6])
+        efficiency = np.array([0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+
+        vikuiti_optical_surface = pg4.geant4.solid.OpticalSurface(
+            name="vikuiti_optical_surface", 
+            finish="polished", 
+            model="unified",
+            surf_type="dielectric_metal", 
+            value=1, 
+            registry=self.registry
+        )
+        vikuiti_optical_surface.addVecProperty("REFLECTIVITY", energy, reflectivity, eunit="eV")
+        vikuiti_optical_surface.addVecProperty("RINDEX", energy, rindex, eunit="eV")
+        vikuiti_optical_surface.addVecProperty("SPECULARLOBECONSTANT", energy, specularlobe, eunit="eV")
+        vikuiti_optical_surface.addVecProperty("SPECULARSPIKECONSTANT", energy, specularspike, eunit="eV")
+        vikuiti_optical_surface.addVecProperty("BACKSCATTERCONSTANT", energy, backscatter, eunit="eV")
+        vikuiti_optical_surface.addVecProperty("EFFICIENCY", energy, efficiency, eunit="eV")
+
         for side in range(self.lg.n_sides):
             is_vertical = side % 2 == 0
             place_sipm = self.sipm.placement == "all" or (self.sipm.placement == "left_right" and is_vertical) or (self.sipm.placement == "top_bottom" and not is_vertical)
@@ -198,6 +227,7 @@ class RectangularLightGuide(BaseLightGuide):
             if not place_sipm:
                 current_reflector_l = self.reflector_short_l if is_vertical else self.reflector_long_l
                 pg4.geant4.PhysicalVolume(rotation, [cx, 0, cz], current_reflector_l, f"reflector_{side}", self.container_l, registry=self.registry)
+                pg4.geant4.SkinSurface(f"reflector_{side}_surface", current_reflector_l, vikuiti_optical_surface, self.registry)
                 continue
 
             length = lg_z if is_vertical else lg_x
@@ -210,6 +240,7 @@ class RectangularLightGuide(BaseLightGuide):
             current_reflector_l = pg4.geant4.LogicalVolume(current_reflector_s, self.registry.materialDict["PMMA"], f"subtr_reflector_{side}", registry=self.registry)
             current_reflector_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1)
             pg4.geant4.PhysicalVolume(rotation, [cx, 0, cz], current_reflector_l, f"subtr_reflector_{side}", self.container_l, registry=self.registry)
+            pg4.geant4.SkinSurface(f"subtr_reflector_{side}_surface", current_reflector_l, vikuiti_optical_surface, self.registry)
         
     def place_container_in_parent(self, parent_lv):
         lg_y = self.lg.dimensions_in_mm[1]
