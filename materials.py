@@ -24,7 +24,7 @@ def build_optical_properties(WLSConc):
     photon_energy = photon_energy_from_nm(wl)  # oppure from_nm_to_ev(wl) se serve
 
     WLS_scint_spectrum = load_array_from_txt("data/BBT_emiss_spectrum.txt")
-    PMMA_abs_length = load_array_from_txt("data/PMMA_abs_length_alt.txt")
+    PMMA_abs_length = load_array_from_txt("data/PMMA_abs_length.txt")
 
     # --- WLS ---
     if WLSConc >= 0:
