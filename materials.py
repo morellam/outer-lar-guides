@@ -18,10 +18,10 @@ def load_wls_abs(concentration):
 
 def build_optical_properties(WLSConc):
 
-    wl = np.arange(600, 279, -1)  # lunghezze d’onda
+    wl = np.arange(600, 279, -1)  # wavelength
     n = wl.size
 
-    photon_energy = photon_energy_from_nm(wl)  # oppure from_nm_to_ev(wl) se serve
+    photon_energy = photon_energy_from_nm(wl)  
 
     WLS_scint_spectrum = load_array_from_txt("data/BBT_emiss_spectrum.txt")
     PMMA_abs_length = load_array_from_txt("data/PMMA_abs_length.txt")
@@ -77,10 +77,11 @@ def define_PMMA(reg: pg4.geant4.Registry):
     pmma.add_element_natoms(C,5)
     pmma.add_element_natoms(O,2)
 
-    # old way
-    # photon_energy = np.loadtxt('data/PMMA_energy.txt', delimiter=',')
-    # abs_length = np.loadtxt('data/PMMA_abs_length.txt', delimiter=',')
-    # pmma.addVecProperty("ABSLENGTH", photon_energy, abs_length, vunit="m")
+    # Taken from Sultanova, N.G., Kasarova, S.N. & Nikolov, I.D. Characterization of optical properties 
+    # of optical polymers. Opt Quant Electron 45, 221–232 (2013). https://doi.org/10.1007/s11082-012-9616-6
+    pmma_wl_nm = np.array([1052.0, 879.0, 833.0, 703.0, 656.3, 632.8, 587.6, 486.1, 435.8])
+    pmma_rindex_energy = photon_energy_from_nm(pmma_wl_nm)
+    pmma_rindex_vals = np.array([1.4813, 1.4834, 1.4839, 1.4863, 1.4890, 1.4892, 1.4914, 1.4973, 1.5025])
 
     BBT_optical_properties = build_optical_properties(1)
     photon_energy = BBT_optical_properties["PhotonEnergy"]
@@ -89,6 +90,7 @@ def define_PMMA(reg: pg4.geant4.Registry):
     SCINT    = BBT_optical_properties["SCINT"]
     RAYLEIGH = BBT_optical_properties["RAYLEIGH"]
 
+    pmma.addVecProperty("RINDEX", pmma_rindex_energy, pmma_rindex_vals)
     pmma.addVecProperty("ABSLENGTH", photon_energy, ABS, vunit="m")
     # add check on concentration level (>0 or not)
     pmma.addVecProperty("WLSABSLENGTH", photon_energy, WLSABS, vunit="m")
@@ -132,7 +134,7 @@ def define_pTP(reg: pg4.geant4.Registry):
     pTP.addVecProperty("ABSLENGTH", pTP_energy, pTP_kill_after, vunit="m")
     pTP.addVecProperty("WLSABSLENGTH", pTP_energy, pTP_abs_length, vunit="m")
     pTP.addVecProperty("WLSCOMPONENT", pTP_spectrum_energy, pTP_scint_spectrum_cryo)
-    pTP.addConstProperty("WLSTIMECONSTANT", 0.5, "ns")  # in ns
+    pTP.addConstProperty("WLSTIMECONSTANT", 0.5, "ns")
 
 def define_lar(reg: pg4.geant4.Registry):
     """Define Liquid Argon (LAr) material and its optical properties."""
