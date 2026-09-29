@@ -37,7 +37,7 @@ void LGOutputScheme::ClearBeforeEvent() {
 void LGOutputScheme::AssignOutputNames(G4AnalysisManager* ana) {
   auto rmg = RMGOutputManager::Instance();
 
-  // 1. NTUPLE OF DETECTED PHOTONS
+  // 1. NTuple of detected photons
   auto id_phot = rmg->RegisterNtuple(OutputRegisterID_photons,ana->CreateNtuple("LGOutput", "Detected photons"),"LGOutput");
   ana->CreateNtupleIColumn(id_phot, "evtID");
   ana->CreateNtupleDColumn(id_phot, "lambda_nm");
@@ -49,7 +49,7 @@ void LGOutputScheme::AssignOutputNames(G4AnalysisManager* ana) {
   ana->CreateNtupleDColumn(id_phot, "track_length_mm");
   ana->FinishNtuple(id_phot);
 
-  // 2. NTUPLE WITH EVENT STATISTICS
+  // 2. NTuple with event statistics
   auto id_stats = rmg->RegisterNtuple(OutputRegisterID_stats,ana->CreateNtuple("LGEventStats", "Per-event photon counts"),"LGEventStats");
   ana->CreateNtupleIColumn(id_stats, "evtID");
   ana->CreateNtupleIColumn(id_stats, "n_phot_produced_scint");
@@ -87,14 +87,13 @@ void LGOutputScheme::SteppingAction(const G4Step* step) {
     } 
   }
 
-  // Computing number of photons hitting the external surface, either the Light Guide or the external WLS stage
+  // Computing number of photons hitting the external surface, 
+  // Either of the Light Guide or of the external WLS
   auto prePoint = step->GetPreStepPoint();
   auto postPoint = step->GetPostStepPoint();
 
   if (!bornInsideDetector && postPoint->GetStepStatus() == fGeomBoundary) {
-
     if (prePoint->GetPhysicalVolume() && postPoint->GetPhysicalVolume()){
-
       G4String preName = prePoint->GetPhysicalVolume()->GetName();
       G4String postName = postPoint->GetPhysicalVolume()->GetName();
 

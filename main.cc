@@ -1,26 +1,23 @@
-#include "RMGHardware.hh"
-#include "RMGLog.hh"
+#include "RMGDefaultCli.hh"
 #include "RMGManager.hh"
-
 #include "LGOutputScheme.hh"
 
+class MyCLI : public RMGDefaultCli {
+public:
+    void SetupRuntime(RMGManager& manager) override {
+        RMGDefaultCli::SetupRuntime(manager);
+        auto user_init = manager.GetUserInit();
+        user_init->AddOptionalOutputScheme<LGOutputScheme>("LGOutputScheme");
+    }
+
+    void SetupGeometry(RMGManager& manager) override {
+        RMGDefaultCli::SetupGeometry(manager);
+    }
+};
+
 int main(int argc, char** argv) {
-
-    RMGManager manager("light-guide", argc, argv);
-    manager.GetDetectorConstruction()->IncludeGDMLFile("geom.gdml");
-    // manager.SetNumberOfThreads(1);
-
-    auto user_init = manager.GetUserInit();
-    user_init->AddOptionalOutputScheme<LGOutputScheme>("LGOutputScheme");
-
-    //  Need at least 1 active detector, otherwise persistency not enabled (even if manually setting it)
-    // manager.GetDetectorConstruction()->RegisterDetector(kOptical, "sipm_00", 0);
-
-    std::string macro = argc > 1 ? argv[1] : "";
-    if (!macro.empty()) manager.IncludeMacroFile(macro);
-
-    manager.Initialize();
-    manager.Run();
-
-    return 0;
+    MyCLI app;
+    app.ParseCliArgs(argc, argv);
+    app.SetupLoggingAndIpc();
+    return app.RunSimulation(argc, argv);
 }

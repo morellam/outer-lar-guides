@@ -16,7 +16,7 @@ def load_wls_abs(concentration):
     filename = f"data/BBT_abs_length_C{C_int:02d}.txt"
     return load_array_from_txt(filename)
 
-def build_optical_properties(WLSConc):
+def build_PMMA_optical_properties(WLSConc):
 
     wl = np.arange(600, 279, -1)  # wavelength
     n = wl.size
@@ -83,7 +83,7 @@ def define_PMMA(reg: pg4.geant4.Registry):
     pmma_rindex_energy = photon_energy_from_nm(pmma_wl_nm)
     pmma_rindex_vals = np.array([1.4813, 1.4834, 1.4839, 1.4863, 1.4890, 1.4892, 1.4914, 1.4973, 1.5025])
 
-    BBT_optical_properties = build_optical_properties(1)
+    BBT_optical_properties = build_PMMA_optical_properties(1)
     photon_energy = BBT_optical_properties["PhotonEnergy"]
     ABS      = BBT_optical_properties["ABS"]
     WLSABS   = BBT_optical_properties["WLSABS"]
