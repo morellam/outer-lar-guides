@@ -19,9 +19,10 @@ class LightGuideConfig:
 class WLSConfig:
     """Dataclass storing material properties of external WaveLength Shifting (WLS) layer."""
     material: Optional[str] = None
-    thickness_in_mm: float = 0.0
+    wls_thickness_in_mm: float = 0.0
     gap_in_mm: float = 0.0
     substrate: Union[bool, str, None] = False
+    substrate_thickness_in_mm: Optional[float] = 1
 
 @dataclass
 class SiPMConfig:
@@ -54,9 +55,11 @@ class BaseLightGuide:
         self.reflector = ReflectorConfig(**config_dict.get("reflector", {}))
 
         if self.wls.substrate:
-            substrate_thickness = 1.0
-            if self.wls.gap_in_mm < substrate_thickness:
-                self.wls.gap_in_mm = 0
+            if not self.wls.substrate_thickness_in_mm:
+                self.wls.substrate_thickness_in_mm = 3
+            # substrate_thickness = 1.0 # defined in the macro
+            # if self.wls.gap_in_mm < substrate_thickness:
+            #     self.wls.gap_in_mm = 0
 
         if self.reflector.gap_in_mm is None: 
             self.reflector.gap_in_mm = self.sipm.gap_in_mm
@@ -122,8 +125,8 @@ class RectangularLightGuide(BaseLightGuide):
         if self.reflector.placement:
             x += self.reflector_thickness_in_mm + self.reflector.gap_in_mm
         
-        substrate_thickness = 1.0 if self.wls.substrate else 0.0
-        total_wls_thickness = self.wls.thickness_in_mm + substrate_thickness
+        substrate_thickness = self.wls.substrate_thickness_in_mm if self.wls.substrate else 0.0
+        total_wls_thickness = self.wls.wls_thickness_in_mm + substrate_thickness
 
         y = lg_y + total_wls_thickness * 2 + self.wls.gap_in_mm * 2 if self.wls.material else lg_y
         
@@ -142,7 +145,7 @@ class RectangularLightGuide(BaseLightGuide):
     def construct_external_wls(self):
         lg_x, lg_y, lg_z = self.lg.dimensions_in_mm
         
-        substrate_thickness = 1.0 if self.wls.substrate else 0.0
+        substrate_thickness = self.wls.substrate_thickness_in_mm if self.wls.substrate else 0.0
         
         if self.wls.substrate:
             wls_substrate_s = pg4.geant4.solid.Box("wls_substrate_s", lg_x, substrate_thickness, lg_z, registry=self.registry, lunit="mm")
@@ -151,8 +154,8 @@ class RectangularLightGuide(BaseLightGuide):
             wls_substrate_l.pygeom_color_rgba = (0.8, 0.8, 0.8, 0.5)
             pg4.geant4.PhysicalVolume([0, 0, 0], [0, y_sub, 0], wls_substrate_l, "wls_substrate", self.container_l, registry=self.registry)
 
-        wls_external_s = pg4.geant4.solid.Box("wls_external_s", lg_x, self.wls.thickness_in_mm, lg_z, registry=self.registry, lunit="mm")
-        y_wls = lg_y / 2 + self.wls.gap_in_mm + substrate_thickness + self.wls.thickness_in_mm / 2
+        wls_external_s = pg4.geant4.solid.Box("wls_external_s", lg_x, self.wls.wls_thickness_in_mm, lg_z, registry=self.registry, lunit="mm")
+        y_wls = lg_y / 2 + self.wls.gap_in_mm + substrate_thickness + self.wls.wls_thickness_in_mm / 2
         wls_external_l = pg4.geant4.LogicalVolume(wls_external_s, self.registry.materialDict[self.wls.material], "wls_external_l", registry=self.registry)
         wls_external_l.pygeom_color_rgba = (0.180, 0.600, 0.369, 1.0)
         pg4.geant4.PhysicalVolume([0, 0, 0], [0, y_wls, 0], wls_external_l, "wls_external", self.container_l, registry=self.registry)
@@ -250,8 +253,8 @@ class PolygonalLightGuide(BaseLightGuide):
             
         r_ext = self.apothem + d
 
-        substrate_thickness = 1.0 if self.wls.substrate else 0.0
-        total_wls_thickness = self.wls.thickness_in_mm + substrate_thickness
+        substrate_thickness = self.wls.substrate_thickness_in_mm if self.wls.substrate else 0.0
+        total_wls_thickness = self.wls.wls_thickness_in_mm + substrate_thickness
 
         z_ext = lg_z / 2 + total_wls_thickness * 2 + self.wls.gap_in_mm if self.wls.material else lg_z / 2
         
@@ -266,7 +269,7 @@ class PolygonalLightGuide(BaseLightGuide):
     def construct_external_wls(self):
         lg_z = self.lg.dimensions_in_mm[2]
         
-        substrate_thickness = 1.0 if self.wls.substrate else 0.0
+        substrate_thickness = self.wls.substrate_thickness_in_mm if self.wls.substrate else 0.0
 
         if self.wls.substrate:
             wls_substrate_s = pg4.geant4.solid.Polyhedra("wls_substrate_s", 0, 2 * pi, self.lg.n_sides, 2, [-substrate_thickness / 2, substrate_thickness / 2], [0.0, 0.0], [self.apothem, self.apothem], registry=self.registry, lunit="mm")
@@ -275,8 +278,8 @@ class PolygonalLightGuide(BaseLightGuide):
             wls_substrate_l.pygeom_color_rgba = (0.8, 0.8, 0.8, 0.5)
             pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, z_sub], wls_substrate_l, "wls_substrate", self.container_l, registry=self.registry)
 
-        wls_external_s = pg4.geant4.solid.Polyhedra("wls_external_s", 0, 2 * pi, self.lg.n_sides, 2, [-self.wls.thickness_in_mm / 2, self.wls.thickness_in_mm / 2], [0.0, 0.0], [self.apothem, self.apothem], registry=self.registry, lunit="mm")
-        z_wls = lg_z / 2 + self.wls.gap_in_mm + substrate_thickness + self.wls.thickness_in_mm / 2
+        wls_external_s = pg4.geant4.solid.Polyhedra("wls_external_s", 0, 2 * pi, self.lg.n_sides, 2, [-self.wls.wls_thickness_in_mm / 2, self.wls.wls_thickness_in_mm / 2], [0.0, 0.0], [self.apothem, self.apothem], registry=self.registry, lunit="mm")
+        z_wls = lg_z / 2 + self.wls.gap_in_mm + substrate_thickness + self.wls.wls_thickness_in_mm / 2
         wls_external_l = pg4.geant4.LogicalVolume(wls_external_s, self.registry.materialDict[self.wls.material], "wls_external_l", registry=self.registry)
         wls_external_l.pygeom_color_rgba = (0.180, 0.600, 0.369, 1.0)
         pg4.geant4.PhysicalVolume([0, 0, 0], [0, 0, z_wls], wls_external_l, "wls_external", self.container_l, registry=self.registry)

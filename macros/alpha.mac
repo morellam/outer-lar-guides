@@ -12,7 +12,8 @@
 
 /RMG/Output/NtuplePerDetector false
 ####/RMG/Output/Track/StoreOpticalPhotons true
-/RMG/Output/FileName ./output/PDE/TPB/square_allside_120_reflector_TPB.root
+/RMG/Output/FileName testing.root
+#####/RMG/Output/FileName ./alpha_test.root
 
 /RMG/Generator/Select GPS
 /gps/position 0 0.5 0 m
@@ -20,4 +21,4 @@
 /gps/direction 0 -1 0
 /gps/energy 5000 keV
 
-/run/beamOn 500
+/run/beamOn 10
