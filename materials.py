@@ -89,12 +89,12 @@ def define_PMMA(reg: pg4.geant4.Registry):
     WLSABS   = BBT_optical_properties["WLSABS"]
     SCINT    = BBT_optical_properties["SCINT"]
     RAYLEIGH = BBT_optical_properties["RAYLEIGH"]
-
+    
     pmma.addVecProperty("RINDEX", pmma_rindex_energy, pmma_rindex_vals)
     pmma.addVecProperty("ABSLENGTH", photon_energy, ABS, vunit="m")
     # add check on concentration level (>0 or not)
     pmma.addVecProperty("WLSABSLENGTH", photon_energy, WLSABS, vunit="m")
-    pmma.addVecProperty("WLSCOMPONENT", photon_energy, SCINT, vunit="m")
+    pmma.addVecProperty("WLSCOMPONENT", photon_energy, SCINT)
     pmma.addVecProperty("RAYLEIGH", photon_energy, RAYLEIGH, vunit="m")
     pmma.addConstProperty("WLSTIMECONSTANT", 0.5, "ns")
 

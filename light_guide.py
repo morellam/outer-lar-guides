@@ -4,30 +4,29 @@ import numpy as np
 
 from math import pi, cos, sin, tan
 from dataclasses import dataclass
-from typing import Tuple, Optional, Union
 
 @dataclass
 class LightGuideConfig:
     """Dataclass storing geometrical and materials properties of the light guide."""
-    dimensions_in_mm: Tuple[float, float, float]
+    dimensions_in_mm: tuple[float, float, float]
     geometry: str = "rectangle"
     n_sides: int = 4
     wls: str = "PMMA"
-    BBT_concentration: Optional[float] = 0.0
+    BBT_concentration: float | None = 0.0
 
 @dataclass
 class WLSConfig:
     """Dataclass storing material properties of external WaveLength Shifting (WLS) layer."""
-    material: Optional[str] = None
+    material: str | None = None
     wls_thickness_in_mm: float = 0.0
     gap_in_mm: float = 0.0
-    substrate: Union[bool, str, None] = False
-    substrate_thickness_in_mm: Optional[float] = 1
+    substrate: bool | str | None = False
+    substrate_thickness_in_mm: float = 1
 
 @dataclass
 class SiPMConfig:
     """Dataclass storing properties of the SiPMs."""
-    dimensions_in_mm: Tuple[float, float, float] = (6.0, 6.0, 1.0)
+    dimensions_in_mm: tuple[float, float, float] = (6.0, 6.0, 1.0)
     placement: str = "left_right"
     number: int = 12
     gap_in_mm: float = 0.
@@ -36,7 +35,7 @@ class SiPMConfig:
 class ReflectorConfig:
     """Dataclass sotring geometrical properties of the reflector."""
     placement: bool = False
-    gap_in_mm: Optional[float] = None
+    gap_in_mm: float | None = 0.0
 
 
 class BaseLightGuide:
