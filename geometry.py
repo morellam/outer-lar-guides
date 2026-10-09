@@ -1,3 +1,4 @@
+import yaml
 from pygeomtools import write_pygeom
 import pyg4ometry as pg4
 
@@ -9,9 +10,15 @@ from materials import define_materials
 def main():
     # Initialization
     config_file = "config.yaml"
+
+    with open(config_file, "r") as f:
+        config_dict = yaml.safe_load(f)
+    sipm_efficiency = float(config_dict.get("sipm", {}).get("efficiency", 1.0))
+    
+    # Defining materials and surfaces
     reg = pg4.geant4.Registry()
     define_materials(reg)
-    surfaces = define_surfaces(reg)
+    surfaces = define_surfaces(reg, sipm_efficiency)
 
     # Setup World
     world_s = pg4.geant4.solid.Box("world_s", 10000, 10000, 10000, registry=reg, lunit="mm")

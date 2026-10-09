@@ -1,11 +1,11 @@
 import pyg4ometry as pg4
 import numpy as np
 
-def define_optical_detector(reg: pg4.geant4.Registry):
+def define_optical_detector(reg: pg4.geant4.Registry, sipm_efficiency: float = 1.0):
     """Define optical surfaces for optical detectors."""
 
     energy       = np.array([1, 20.0]) # eV
-    efficiency   = np.array([1.0, 1.0])
+    efficiency   = np.array([sipm_efficiency, sipm_efficiency])
     reflectivity = np.array([0., 0.])
 
     detector_optical_surface = pg4.geant4.solid.OpticalSurface(
@@ -50,11 +50,11 @@ def define_Vikuiti(reg: pg4.geant4.Registry):
 
     return vikuiti_optical_surface
 
-def define_surfaces(reg):
+def define_surfaces(reg, sipm_efficiency: float = 1.0):
     """Define optical surfaces to attach to materials used in the simulation."""
 
     vikuiti_optical_surface = define_Vikuiti(reg)
-    detector_optical_surface = define_optical_detector(reg)
+    detector_optical_surface = define_optical_detector(reg, sipm_efficiency)
 
     return {"vikuiti": vikuiti_optical_surface,
             "detector": detector_optical_surface}

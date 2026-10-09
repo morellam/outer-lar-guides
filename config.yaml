@@ -1,24 +1,27 @@
 light_guide:
   # options (string): rectangle, polygon
-  geometry: polygon 
+  geometry: rectangle
   n_sides: 4
-  dimensions_in_mm: [330.0, 10.0, 330.0] 
-  wls: TPB
+  dimensions_in_mm: [1000.0, 10.0, 100.0] 
+  wls: PMMA
   BBT_concentration: 1
 
 sipm:
   dimensions_in_mm: [6.0, 6.0, 1.0]
   # options (string): left_right, top_bottom, all
-  placement: all
-  number: 10
+  placement: left_right
+  number: 30
   gap_in_mm: 0
+  efficiency: 0.33
 
 external_wls:
   # options (string): null or TPB, PEN, pTP
-  material: null
-  thickness_in_mm: 1 
+  material: pTP
+  wls_thickness_in_mm: 0.05
   gap_in_mm: 1  
+  substrate: True
+  substrate_thickness_in_mm: 1
 
 reflector: 
   placement: True
-  # gap_in_mm: None
+  gap_in_mm: 0

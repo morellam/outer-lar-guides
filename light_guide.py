@@ -29,11 +29,12 @@ class SiPMConfig:
     dimensions_in_mm: tuple[float, float, float] = (6.0, 6.0, 1.0)
     placement: str = "left_right"
     number: int = 12
-    gap_in_mm: float = 0.
+    gap_in_mm: float = 0.0
+    efficiency: float = 1.0   # not used in this file
 
 @dataclass
 class ReflectorConfig:
-    """Dataclass sotring geometrical properties of the reflector."""
+    """Dataclass storing geometrical properties of the reflector."""
     placement: bool = False
     gap_in_mm: float | None = 0.0
 
@@ -56,9 +57,6 @@ class BaseLightGuide:
         if self.wls.substrate:
             if not self.wls.substrate_thickness_in_mm:
                 self.wls.substrate_thickness_in_mm = 3
-            # substrate_thickness = 1.0 # defined in the macro
-            # if self.wls.gap_in_mm < substrate_thickness:
-            #     self.wls.gap_in_mm = 0
 
         if self.reflector.gap_in_mm is None: 
             self.reflector.gap_in_mm = self.sipm.gap_in_mm
