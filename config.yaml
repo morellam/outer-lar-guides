@@ -2,7 +2,7 @@ light_guide:
   # options (string): rectangle, polygon
   geometry: rectangle
   n_sides: 4
-  dimensions_in_mm: [1000.0, 10.0, 100.0] 
+  dimensions_in_mm: [223.0, 10.0, 223.0] 
   wls: PMMA_BBT
   BBT_concentration: 0.2
 
@@ -11,10 +11,12 @@ sipm:
   # options (string): left_right, top_bottom, all
   placement: left_right
   number: 12
-  gap_in_mm: 0.
-  window_material: Epoxy   
-  window_dimensions_in_mm: [6.0, 6.0, 0.3]
+  gap_in_mm: 20.
+  window_material: Epoxy  
+  # window_dimensions_in_mm: [6.0, 6.0, 0.3]
   efficiency: 0.5
+  cover: True
+  cover_window: False
 
 external_wls:
   # options (string): null or TPB, PEN, pTP
@@ -25,5 +27,5 @@ external_wls:
   substrate_thickness_in_mm: 1
 
 reflector: 
-  placement: True
+  placement: False
   # gap_in_mm: 0.0
