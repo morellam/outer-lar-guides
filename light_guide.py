@@ -294,7 +294,7 @@ class RectangularLightGuide(BaseLightGuide):
                 offset = (j - (sipm_per_side - 1) / 2) * distance_per_sipm
                 current_reflector_s = pg4.geant4.solid.Subtraction(f"reflector_s_{side}_{j}", current_reflector_s, self.opening_s, [[0, 0, 0], [offset, 0, 0]], registry=self.registry)
 
-            current_reflector_l = pg4.geant4.LogicalVolume(current_reflector_s, self.registry.materialDict["PMMA"], f"subtr_reflector_{side}", registry=self.registry)
+            current_reflector_l = pg4.geant4.LogicalVolume(current_reflector_s, "G4_POLYETHYLENE", f"subtr_reflector_{side}", registry=self.registry)
             current_reflector_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1)
             pg4.geant4.PhysicalVolume(rotation, [cx, 0, cz], current_reflector_l, f"subtr_reflector_{side}", self.container_l, registry=self.registry)
             pg4.geant4.SkinSurface(f"subtr_reflector_{side}_surface", current_reflector_l, self.surfaces["vikuiti"], self.registry)
@@ -412,7 +412,7 @@ class PolygonalLightGuide(BaseLightGuide):
                 offset = (j - (sipm_per_side - 1)/2) * (self.side_length / sipm_per_side) if sipm_per_side > 1 else 0
                 current_reflector_s = pg4.geant4.solid.Subtraction(f"reflector_s_{side}_{j}", current_reflector_s, self.opening_s, [[0, 0, 0], [offset, 0, 0]], registry=self.registry)                
             
-            current_reflector_l = pg4.geant4.LogicalVolume(current_reflector_s, self.registry.materialDict["PMMA"], f"subtr_reflector_l_{side}_{j}", registry=self.registry)
+            current_reflector_l = pg4.geant4.LogicalVolume(current_reflector_s, "G4_POLYETHYLENE", f"subtr_reflector_l_{side}_{j}", registry=self.registry)
             current_reflector_l.pygeom_color_rgba = (0.92, 0.92, 0.92, 1)
             pg4.geant4.PhysicalVolume(rotation, [cx, cy, 0], current_reflector_l, f"subtr_reflector_{side}", self.container_l, registry=self.registry)
             pg4.geant4.SkinSurface(f"subtr_reflector_{side}_surface", current_reflector_l, self.surfaces["vikuiti"], self.registry)
