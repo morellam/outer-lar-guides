@@ -134,8 +134,6 @@ def define_Epoxy(reg: pg4.geant4.Registry):
     C = reg.materialDict["carbon"]
     O = reg.materialDict["oxygen"]
 
-    # Same composition as in MyMaterials.cc: C 5/15, O 2/15, H 8/15, 1.19 g/cm3
-    # (note: the .cc passes these ratios to AddElement(), i.e. as *mass fractions*).
     epoxy = pg4.geant4.MaterialCompound("Epoxy", 1.19, 3, reg)
     epoxy.add_element_massfraction(C, 5.0 / 15.0)
     epoxy.add_element_massfraction(O, 2.0 / 15.0)

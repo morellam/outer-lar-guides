@@ -3,17 +3,20 @@
 /RMG/Processes/OpticalPhysics true
 /RMG/Processes/OpticalPhysicsMaxOneWLSPhoton true
 
-/RMG/Geometry/RegisterDetector Optical sipm_.* 00
+# uncomment to use the remage "optical" tree
+###/RMG/Geometry/RegisterDetector Optical sipm_.* 00
 
 ###/RMG/Output/ActivateOutputScheme Track
 /RMG/Output/ActivateOutputScheme LGOutputScheme
 
 /run/initialize
 
+###/RMG/Output/Track/StoreOpticalPhotons true
 /RMG/Output/NtuplePerDetector false
-####/RMG/Output/Track/StoreOpticalPhotons true
-/RMG/Output/FileName testing.root
-#####/RMG/Output/FileName ./alpha_test.root
+# false: LGOutput holds only the detected guide photons (one row per photon)
+# true:  LGOutput holds all the photons emitted in the guide and their fate (escapes, absorptions, ...)
+/RMG/Output/LGOutputScheme/StoreAllGuidePhotons false
+/RMG/Output/FileName prova_square_noreflector.root
 
 /RMG/Generator/Select GPS
 /gps/position 0 0.5 0 m
@@ -21,4 +24,4 @@
 /gps/direction 0 -1 0
 /gps/energy 5000 keV
 
-/run/beamOn 10
+/run/beamOn 500
