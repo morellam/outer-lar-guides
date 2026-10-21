@@ -91,7 +91,7 @@ missing):
   y = 100 mm + guide thickness + `external_wls.gap_in_mm` + `substrate_thickness_in_mm` + `wls_thickness_in_mm`
   (112.05 mm for `config.yaml`): a source h mm above the shifter is at that y + h (162.05 mm = 5 cm above, in
   the example).
-- The output file is the one given with `-o`.
+- The output file is the one given with `-o`. A `/RMG/Output/FileName` in the macro overrides `-o`.
 - For a scan of the source position, run the macro once per position.
 
 

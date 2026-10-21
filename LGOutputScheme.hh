@@ -53,7 +53,7 @@ private:
     kFateEscapedLateral = 5,   // left the guide through a lateral face and lost outside
     kFateEscapedFront = 6,     // left the guide through the front face and lost outside
     kFateEscapedBack = 7,      // left the guide through the back face and lost outside
-    kFateOther = 8,            // e.g. absorbed in a SiPM window
+    kFateOther = 8,            // none of the other cases
     kFateAbsSiPMCover = 9      // killed on the cover (package) of a SiPM
   };
 
