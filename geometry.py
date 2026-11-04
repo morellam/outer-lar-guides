@@ -1,3 +1,4 @@
+import sys
 import yaml
 from pygeomtools import write_pygeom
 import pyg4ometry as pg4
@@ -7,10 +8,8 @@ from surfaces import define_surfaces
 from materials import define_materials
 
 
-def main():
+def main(config_file="config.yaml", gdml_filename="geom.gdml"):
     # Initialization
-    config_file = "config.yaml"
-
     with open(config_file, "r") as f:
         config_dict = yaml.safe_load(f)
     sipm_efficiency = float(config_dict.get("sipm", {}).get("efficiency", 1.0))
@@ -44,10 +43,10 @@ def main():
     light_guide_builder.build_light_guide(container_l)
 
     # Export Geometry to GDML
-    gdml_filename = "geom.gdml"
     write_pygeom(reg, gdml_filename)
     print(f"\nSuccessfully exported geometry to {gdml_filename}\n")
 
 
 if __name__ == "__main__":
-    main()
+    # usage: python geometry.py [config.yaml] [geom.gdml]
+    main(*sys.argv[1:3])

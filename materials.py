@@ -17,7 +17,7 @@ def _load_wls_abs(concentration):
     return _load_array_from_txt(filename)
 
 def _pmma_intrinsic_abs_length(wl):
-    """Intrinsic PMMA absorption length [m], x1.5 as in MyMaterials.cc (index = 550 - wl)."""
+    """Intrinsic PMMA absorption length [m]."""
     PMMA_abs_length = _load_array_from_txt("data/PMMA_abs_length.txt")
     idx_pm = np.clip(550 - wl, 0, len(PMMA_abs_length) - 1)
     return 1.5 * PMMA_abs_length[idx_pm]
@@ -125,17 +125,13 @@ def define_PMMA_BBT(reg: pg4.geant4.Registry, BBT_concentration: float = 0.2):
 
 
 def define_Epoxy(reg: pg4.geant4.Registry):
-    """Define the epoxy used for the SiPM windows (MyMaterials::Epoxy() in the Geant4 project).
-
-    Only RINDEX is defined (constant 1.5 over 1-10 eV): no ABSLENGTH, as in the original.
+    """Define the epoxy used for the SiPM windows.
     """
 
     H = reg.materialDict["hydrogen"]
     C = reg.materialDict["carbon"]
     O = reg.materialDict["oxygen"]
 
-    # Same composition as in MyMaterials.cc: C 5/15, O 2/15, H 8/15, 1.19 g/cm3
-    # (note: the .cc passes these ratios to AddElement(), i.e. as *mass fractions*).
     epoxy = pg4.geant4.MaterialCompound("Epoxy", 1.19, 3, reg)
     epoxy.add_element_massfraction(C, 5.0 / 15.0)
     epoxy.add_element_massfraction(O, 2.0 / 15.0)
@@ -171,7 +167,7 @@ def define_pTP(reg: pg4.geant4.Registry):
     for i in range(487, 335, -1):
         pTP_energy.append(photon_energy_from_nm(i))
         pTP_RI.append(1.65)
-        pTP_abs_length.append(1e3)     # m   (WLSABSLENGTH)
+        pTP_abs_length.append(1e4)     # m   (WLSABSLENGTH)
         pTP_kill_after.append(1e-3)    # m   (ABSLENGTH)
         pTP_rayleigh.append(1e-4)      # m   (RAYLEIGH)
     for i in range(335, 109, -1):
