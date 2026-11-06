@@ -27,5 +27,7 @@ external_wls:
   substrate_thickness_in_mm: 1
 
 reflector: 
-  placement: False
+  # options: left_right, top_bottom, all, none
+  lateral_placement: all
   # gap_in_mm: 0.0
+  back_reflector: True
