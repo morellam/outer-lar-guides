@@ -73,9 +73,13 @@ written in brackets. See `config.yaml` for an example.
 - `substrate_thickness_in_mm` (`1`)
 
 **`reflector`**
-- `placement` (`false`): reflector on the lateral faces of the guide (98% reflectivity in the visible), with
+- `lateral_placement` (`left_right`): reflector on the lateral faces of the guide (98% reflectivity in the visible), with
   holes for the SiPMs
+  - `left_right`: short sides (if rectangular, otherwise even sides)
+  - `top_bottom`: long sides (if rectangular, otherwise odd sides)
+  - `all`: all the sides
 - `gap_in_mm` (`0`): LAr gap between the guide and the reflector, `null` for the same gap as the SiPMs
+- `back_reflector` (`false`): reflector on the back face of the guide the one opposite to the wavelenght shifter
 
 ## Macros
 

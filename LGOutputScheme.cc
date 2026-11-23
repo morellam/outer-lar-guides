@@ -111,16 +111,20 @@ void LGOutputScheme::InitGeometry() {
   if (!fMediumMaterial) RMGLog::Out(RMGLog::warning, "LGOutputScheme: material of the liquid around the light guide not found");
 
   const std::regex re_reflector("^(subtr_)?reflector_(\\d+)$");
+  const std::regex re_back_reflector("^back_reflector$"); 
   const std::regex re_sipm("^sipm_(\\d+)$");
   const std::regex re_window("^window_(\\d+)$");
   const std::regex re_cover("^sipm_cover_.+$");
 
   std::map<G4int, const G4VPhysicalVolume*> reflectors;  // side -> PV, sorted by side
+  const G4VPhysicalVolume* back_reflector = nullptr;
   for (const auto pv : *store) {
     const std::string name = pv->GetName();
     std::smatch match;
     if (std::regex_match(name, match, re_reflector)) {
       reflectors[std::stoi(match[2])] = pv;
+    } else if (std::regex_match(name, re_back_reflector)) {
+      back_reflector = pv;
     } else if (std::regex_match(name, match, re_sipm)) {
       fSiPMIndex[pv] = std::stoi(match[1]);
       fReadoutPVs.insert(pv);
@@ -134,6 +138,10 @@ void LGOutputScheme::InitGeometry() {
   for (const auto& [side, pv] : reflectors) {
     fReflectorColumn[pv] = fReflectorSides.size();
     fReflectorSides.push_back(side);
+  }
+  if (back_reflector) {
+    fReflectorColumn[back_reflector] = fReflectorSides.size();
+    fReflectorSides.push_back(-1);
   }
   fCurBounceReflector.assign(fReflectorSides.size(), 0);
 
@@ -205,7 +213,8 @@ void LGOutputScheme::AssignOutputNames(G4AnalysisManager* ana) {
   ana->CreateNtupleIColumn(id_phot, "n_refl_guide_fresnel");
   ana->CreateNtupleIColumn(id_phot, "n_bounce_reflector");
   for (auto side : fReflectorSides) {
-    ana->CreateNtupleIColumn(id_phot, "n_bounce_reflector_" + std::to_string(side));
+    ana->CreateNtupleIColumn(id_phot, side < 0 ? "n_bounce_reflector_back"
+                                               : "n_bounce_reflector_" + std::to_string(side));
   }
   ana->CreateNtupleDColumn(id_phot, "guide_path_mm");
   ana->CreateNtupleIColumn(id_phot, "n_exit_guide");
